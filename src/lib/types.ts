@@ -7,6 +7,7 @@ export type Budget = "low" | "medium" | "high";
 export type EnergyLevel = "low" | "normal" | "motivated";
 export type CyclePhase = "menstrual" | "follicular" | "ovulation" | "luteal";
 export type MealType = "breakfast" | "lunch" | "dinner";
+export type SleepQuality = "rough" | "ok" | "great";
 
 export type Sex = "female" | "male" | "na";
 export type ActivityLevel = "sedentary" | "light" | "active" | "veryactive";
@@ -43,10 +44,18 @@ export interface UserProfile {
 
 export interface DailyContext {
   energy: EnergyLevel;
+  sleepQuality: SleepQuality;
   timeToday: TimeBucket;
   useUp: string[];
   dateISO: string;
   theme: string; // cuisine theme: "" = no theme, "italian", "mexican", etc.
+}
+
+// Meal feedback — stored separately in localStorage
+export interface MealFeedback {
+  recipeId: string;
+  vote: "up" | "down";
+  date: string;
 }
 
 export interface Recipe {

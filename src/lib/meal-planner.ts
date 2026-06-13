@@ -10,6 +10,8 @@ import type {
 import { RECIPES } from "./recipes-data";
 import { getWeather } from "./weather";
 import { getCyclePhase, phaseHint } from "./cycle";
+import { countSeasonalMatches } from "./seasonal";
+import { readFeedback } from "./profile";
 
 export interface DayContextSnapshot {
   weather: Weather;
@@ -145,6 +147,28 @@ function scoreRecipe(
     if (r.tags.includes(ctx.theme)) score += 10;
   }
 
+  // Seasonal ingredients bonus
+  const ingredientNames = r.ingredients.map((i) => i.name);
+  const seasonal = countSeasonalMatches(ingredientNames);
+  score += Math.min(seasonal.count * 3, 9); // up to +9
+
+  // Sleep quality nudge
+  if (ctx.sleepQuality === "rough") {
+    // Favour easy, comforting, magnesium-rich tags
+    if (r.effort === "nobrain") score += 4;
+    if (r.warmth === "warm") score += 2;
+    if (r.effort === "proper") score -= 3;
+  } else if (ctx.sleepQuality === "great") {
+    if (r.effort === "proper") score += 2;
+  }
+
+  // Feedback loop: reward recipes the user liked, penalise disliked
+  const fb = readFeedback();
+  const entry = fb.find((f) => f.recipeId === r.id);
+  if (entry) {
+    score += entry.vote === "up" ? 3 : -6;
+  }
+
   return score;
 }
 
@@ -191,6 +215,25 @@ export function buildWhyToday(
     bits.push(`${r.protein} g protein supports your muscle-building goal`);
 
   if (snap.cycle) bits.push(`${snap.cycle} phase — ${phaseHint(snap.cycle)}`);
+
+  // Theme day mention
+  if (ctx.theme && r.tags.includes(ctx.theme)) {
+    bits.push(`fits your ${ctx.theme} theme day`);
+  }
+
+  // Seasonal produce mention
+  const ingredientNames = r.ingredients.map((i) => i.name);
+  const seasonal = countSeasonalMatches(ingredientNames);
+  if (seasonal.count >= 2) {
+    bits.push(`uses seasonal ${seasonal.matches.slice(0, 2).join(" & ")}`);
+  } else if (seasonal.count === 1) {
+    bits.push(`features seasonal ${seasonal.matches[0]}`);
+  }
+
+  // Sleep quality mention
+  if (ctx.sleepQuality === "rough" && r.effort === "nobrain") {
+    bits.push("rough sleep — keeping it effortless");
+  }
 
   if (!bits.length) bits.push("a balanced fit for the rest of your day");
 
@@ -300,6 +343,7 @@ export function planWeek(profile: UserProfile, start = new Date()): WeekDayPlan[
     const snap = snapshotContext(profile, d);
     const ctx: DailyContext = {
       energy: "normal",
+      sleepQuality: "ok",
       timeToday: profile.time,
       useUp: [],
       dateISO: d.toISOString().slice(0, 10),

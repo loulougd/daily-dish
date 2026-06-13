@@ -1,11 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo } from "react";
-import { CalendarDays, Cloud, Dumbbell, Sparkles } from "lucide-react";
+import { useMemo, useState } from "react";
+import { CalendarDays, Cloud, Dumbbell, Sparkles, ChevronDown, Clock } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { planWeek } from "@/lib/meal-planner";
 import { useProfile } from "@/lib/profile";
 import { t } from "@/lib/strings";
 import { phaseLabel } from "@/lib/cycle";
+import { photoUrl } from "@/lib/recipe-photos";
+import type { Recipe } from "@/lib/types";
 
 export const Route = createFileRoute("/week")({
   head: () => ({
@@ -20,6 +22,13 @@ export const Route = createFileRoute("/week")({
 function WeekPage() {
   const { profile, hydrated } = useProfile();
   const week = useMemo(() => (hydrated ? planWeek(profile) : []), [hydrated, profile]);
+  const [expanded, setExpanded] = useState<number | null>(0); // first day open by default
+
+  const toggle = (idx: number) => {
+    setExpanded((prev) => (prev === idx ? null : idx));
+  };
+
+  const todayIdx = new Date().getDay();
 
   return (
     <AppShell>
@@ -32,45 +41,86 @@ function WeekPage() {
       </header>
 
       <section className="px-6 space-y-3">
-        {week.map((d, idx) => (
-          <article
-            key={idx}
-            className="bg-card border border-stone-warm/70 rounded-3xl p-4"
-          >
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-3">
-                <div className="size-12 rounded-2xl bg-stone-warm/50 grid place-items-center">
-                  <div className="text-center">
-                    <div className="text-[10px] font-bold uppercase text-ink/50">
-                      {d.dayName}
-                    </div>
-                    <div className="font-serif text-lg leading-none -mt-0.5">
-                      {d.date.getDate()}
+        {week.map((d, idx) => {
+          const isToday = d.date.getDay() === todayIdx && idx < 2;
+          const isOpen = expanded === idx;
+
+          return (
+            <article
+              key={idx}
+              className={`bg-card border rounded-3xl overflow-hidden transition-all duration-300 ${
+                isToday
+                  ? "border-terracotta/40 shadow-sm"
+                  : "border-stone-warm/70"
+              }`}
+            >
+              {/* Collapsed header — always visible */}
+              <button
+                onClick={() => toggle(idx)}
+                className="w-full p-4 flex items-center justify-between text-left"
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`size-12 rounded-2xl grid place-items-center ${
+                    isToday ? "bg-terracotta text-cream" : "bg-stone-warm/50"
+                  }`}>
+                    <div className="text-center">
+                      <div className={`text-[10px] font-bold uppercase ${
+                        isToday ? "text-cream/80" : "text-ink/50"
+                      }`}>
+                        {d.dayName}
+                      </div>
+                      <div className="font-serif text-lg leading-none -mt-0.5">
+                        {d.date.getDate()}
+                      </div>
                     </div>
                   </div>
+                  <div>
+                    <div className="flex flex-wrap gap-1.5">
+                      <Chip Icon={Cloud} label={`${d.snapshot.weather.tempC}°`} />
+                      {d.snapshot.training !== "rest" && (
+                        <Chip
+                          Icon={Dumbbell}
+                          label={d.snapshot.training}
+                          accent={d.snapshot.training === "intense"}
+                        />
+                      )}
+                      {d.snapshot.cycle && (
+                        <Chip Icon={Sparkles} label={phaseLabel(d.snapshot.cycle)} />
+                      )}
+                    </div>
+                    {!isOpen && (
+                      <p className="text-[11px] text-ink/45 mt-1 truncate max-w-[200px]">
+                        {d.breakfast.name} · {d.lunch.name} · {d.dinner.name}
+                      </p>
+                    )}
+                  </div>
                 </div>
-                <div className="flex flex-wrap gap-1.5">
-                  <Chip Icon={Cloud} label={`${d.snapshot.weather.tempC}°`} />
+                <ChevronDown
+                  className={`size-5 text-ink/40 shrink-0 transition-transform duration-300 ${
+                    isOpen ? "rotate-180" : ""
+                  }`}
+                  strokeWidth={1.5}
+                />
+              </button>
+
+              {/* Expanded detail */}
+              {isOpen && (
+                <div className="px-4 pb-4 space-y-3 animate-in slide-in-from-top-2 duration-200">
+                  <ExpandedMeal label="Breakfast" recipe={d.breakfast} />
+                  <ExpandedMeal label="Lunch" recipe={d.lunch} />
+                  <ExpandedMeal label="Dinner" recipe={d.dinner} />
+
                   {d.snapshot.training !== "rest" && (
-                    <Chip
-                      Icon={Dumbbell}
-                      label={d.snapshot.training}
-                      accent={d.snapshot.training === "intense"}
-                    />
-                  )}
-                  {d.snapshot.cycle && (
-                    <Chip Icon={Sparkles} label={phaseLabel(d.snapshot.cycle)} />
+                    <div className="bg-terracotta-soft/50 rounded-xl p-3 text-xs text-ink/60">
+                      <span className="font-semibold text-terracotta">Training day</span> — {d.snapshot.training} session.
+                      {d.snapshot.training === "intense" ? " Extra carbs and a post-workout snack." : " Balanced energy."}
+                    </div>
                   )}
                 </div>
-              </div>
-            </div>
-            <ul className="space-y-1.5">
-              <DayMeal label="B" recipe={d.breakfast} />
-              <DayMeal label="L" recipe={d.lunch} />
-              <DayMeal label="D" recipe={d.dinner} />
-            </ul>
-          </article>
-        ))}
+              )}
+            </article>
+          );
+        })}
       </section>
 
       <div className="mx-6 mt-8 bg-terracotta-soft border border-terracotta/20 rounded-3xl p-5 flex gap-3">
@@ -110,28 +160,37 @@ function Chip({
   );
 }
 
-function DayMeal({
-  label,
-  recipe,
-}: {
-  label: string;
-  recipe: import("@/lib/types").Recipe;
-}) {
+function ExpandedMeal({ label, recipe }: { label: string; recipe: Recipe }) {
+  const photo = photoUrl(recipe.id, recipe.mealType, { w: 400, h: 225 });
+
   return (
-    <li>
-      <Link
-        to="/recipe/$id"
-        params={{ id: recipe.id }}
-        className="flex items-center gap-3 py-1.5 hover:bg-stone-warm/30 -mx-2 px-2 rounded-lg"
-      >
-        <span className="size-6 rounded-full bg-sage-soft text-sage text-[10px] font-bold grid place-items-center">
+    <Link
+      to="/recipe/$id"
+      params={{ id: recipe.id }}
+      className="flex gap-3 bg-stone-warm/20 rounded-xl p-2.5 hover:bg-stone-warm/40 transition-colors"
+    >
+      <img
+        src={photo}
+        alt={recipe.name}
+        loading="lazy"
+        className="size-16 rounded-lg object-cover shrink-0 bg-stone-warm/40"
+      />
+      <div className="flex-1 min-w-0">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-ink/45 mb-0.5">
           {label}
-        </span>
-        <span className="text-sm text-ink/80 flex-1 truncate">{recipe.name}</span>
-        <span className="text-[10px] text-ink/40 font-semibold tabular-nums">
-          {recipe.prepMinutes}m
-        </span>
-      </Link>
-    </li>
+        </p>
+        <p className="text-sm font-semibold text-ink truncate">{recipe.name}</p>
+        <div className="flex items-center gap-2 mt-1 text-[11px] text-ink/50">
+          <span className="inline-flex items-center gap-0.5">
+            <Clock className="size-3" strokeWidth={2} />
+            {recipe.prepMinutes}m
+          </span>
+          <span className="size-1 rounded-full bg-ink/20" />
+          <span>{recipe.calories} kcal</span>
+          <span className="size-1 rounded-full bg-ink/20" />
+          <span>P {recipe.protein}g</span>
+        </div>
+      </div>
+    </Link>
   );
 }

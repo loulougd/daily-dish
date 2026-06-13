@@ -16,11 +16,13 @@
  * implementation is contained.
  */
 import { useEffect, useState, useCallback } from "react";
-import type { DailyContext, UserProfile } from "./types";
+import type { DailyContext, MealFeedback, UserProfile } from "./types";
 
 const PROFILE_KEY = "forkcast.profile.v1";
 const CONTEXT_KEY = "forkcast.context.v1";
 const SWAPS_KEY = "forkcast.swaps.v1";
+const FEEDBACK_KEY = "forkcast.feedback.v1";
+const HYDRATION_KEY = "forkcast.hydration.v1";
 
 export const defaultProfile: UserProfile = {
   goal: "better",
@@ -34,7 +36,7 @@ export const defaultProfile: UserProfile = {
   style: 50,
   budget: "medium",
   household: 2,
-  city: "Lisbon",
+  city: "London",
   cycle: { enabled: false, cycleLength: 28 },
   age: 0,
   sex: "na",
@@ -90,6 +92,7 @@ const todayISO = () => new Date().toISOString().slice(0, 10);
 
 export const defaultContext: DailyContext = {
   energy: "normal",
+  sleepQuality: "ok",
   timeToday: "t20",
   useUp: [],
   dateISO: todayISO(),
@@ -162,4 +165,77 @@ export function useSwaps() {
     canSwap: used < FREE_SWAPS_PER_DAY,
     consume,
   };
+}
+
+// ─── Meal Feedback ──────────────────────────────────────────────────────────
+export function useMealFeedback() {
+  const [feedback, setFeedback] = useState<MealFeedback[]>([]);
+
+  useEffect(() => {
+    setFeedback(readJSON<MealFeedback[]>(FEEDBACK_KEY, []));
+  }, []);
+
+  const vote = useCallback((recipeId: string, v: "up" | "down") => {
+    setFeedback((prev) => {
+      // Replace any existing vote for this recipe
+      const filtered = prev.filter((f) => f.recipeId !== recipeId);
+      const next = [...filtered, { recipeId, vote: v, date: todayISO() }];
+      // Keep last 100 entries
+      const trimmed = next.slice(-100);
+      writeJSON(FEEDBACK_KEY, trimmed);
+      return trimmed;
+    });
+  }, []);
+
+  const getVote = useCallback(
+    (recipeId: string): "up" | "down" | null => {
+      const entry = feedback.find((f) => f.recipeId === recipeId);
+      return entry?.vote ?? null;
+    },
+    [feedback],
+  );
+
+  return { feedback, vote, getVote };
+}
+
+/** Get all feedback entries (for scoring engine). */
+export function readFeedback(): MealFeedback[] {
+  return readJSON<MealFeedback[]>(FEEDBACK_KEY, []);
+}
+
+// ─── Hydration Tracker ──────────────────────────────────────────────────────
+export function useHydration() {
+  const [glasses, setGlasses] = useState(0);
+
+  useEffect(() => {
+    const stored = readJSON<{ date: string; glasses: number }>(HYDRATION_KEY, {
+      date: todayISO(),
+      glasses: 0,
+    });
+    if (stored.date !== todayISO()) {
+      const fresh = { date: todayISO(), glasses: 0 };
+      writeJSON(HYDRATION_KEY, fresh);
+      setGlasses(0);
+    } else {
+      setGlasses(stored.glasses);
+    }
+  }, []);
+
+  const add = useCallback(() => {
+    setGlasses((g) => {
+      const next = g + 1;
+      writeJSON(HYDRATION_KEY, { date: todayISO(), glasses: next });
+      return next;
+    });
+  }, []);
+
+  const remove = useCallback(() => {
+    setGlasses((g) => {
+      const next = Math.max(0, g - 1);
+      writeJSON(HYDRATION_KEY, { date: todayISO(), glasses: next });
+      return next;
+    });
+  }, []);
+
+  return { glasses, add, remove };
 }

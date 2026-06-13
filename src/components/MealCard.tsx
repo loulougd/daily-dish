@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { RefreshCw, Clock, Flame, Wallet, Sparkles } from "lucide-react";
+import { RefreshCw, Clock, Flame, Wallet, Sparkles, ThumbsUp, ThumbsDown } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { Recipe } from "@/lib/types";
 import { t } from "@/lib/strings";
@@ -19,10 +19,12 @@ interface Props {
   onSwap: () => void;
   canSwap: boolean;
   showCalories: boolean;
-  badge?: string; // e.g. "POST-TRAINING"
+  badge?: string;
+  feedbackVote?: "up" | "down" | null;
+  onFeedback?: (vote: "up" | "down") => void;
 }
 
-export function MealCard({ recipe, why, onSwap, canSwap, showCalories, badge }: Props) {
+export function MealCard({ recipe, why, onSwap, canSwap, showCalories, badge, feedbackVote, onFeedback }: Props) {
   // Fade-out/in animation when the recipe changes via swap
   const [fading, setFading] = useState(false);
   useEffect(() => {
@@ -82,6 +84,37 @@ export function MealCard({ recipe, why, onSwap, canSwap, showCalories, badge }: 
             <span>P {recipe.protein}g</span>
             <span>C {recipe.carbs}g</span>
             <span>F {recipe.fats}g</span>
+          </div>
+        )}
+
+        {/* Feedback row */}
+        {onFeedback && (
+          <div className="flex items-center gap-2 mt-3">
+            <span className="text-[10px] text-ink/40 font-medium">How was it?</span>
+            <div className="flex gap-1.5 ml-auto">
+              <button
+                onClick={() => onFeedback("up")}
+                className={`size-8 rounded-lg inline-flex items-center justify-center transition-colors ${
+                  feedbackVote === "up"
+                    ? "bg-green-100 text-green-600 border border-green-300"
+                    : "bg-card text-ink/40 border border-stone-warm hover:text-green-500"
+                }`}
+                aria-label="Liked"
+              >
+                <ThumbsUp className="size-3.5" strokeWidth={2} />
+              </button>
+              <button
+                onClick={() => onFeedback("down")}
+                className={`size-8 rounded-lg inline-flex items-center justify-center transition-colors ${
+                  feedbackVote === "down"
+                    ? "bg-red-100 text-red-500 border border-red-300"
+                    : "bg-card text-ink/40 border border-stone-warm hover:text-red-400"
+                }`}
+                aria-label="Disliked"
+              >
+                <ThumbsDown className="size-3.5" strokeWidth={2} />
+              </button>
+            </div>
           </div>
         )}
 

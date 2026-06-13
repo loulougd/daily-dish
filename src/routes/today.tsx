@@ -1,6 +1,6 @@
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { useDailyContext, useProfile, useSwaps } from "@/lib/profile";
+import { useDailyContext, useProfile, useSwaps, useMealFeedback, useHydration } from "@/lib/profile";
 import { planDay, swapMeal, snapshotContext } from "@/lib/meal-planner";
 import { fetchWeather } from "@/lib/weather";
 import { t } from "@/lib/strings";
@@ -12,13 +12,14 @@ import { SnackCard } from "@/components/SnackCard";
 import { ComingSoon } from "@/components/ComingSoon";
 import { DailyOverview } from "@/components/DailyOverview";
 import { ThemeSelector } from "@/components/ThemeSelector";
-import { Moon, CalendarClock, Users, Recycle, Camera, Wallet } from "lucide-react";
+import { SleepCheckin } from "@/components/SleepCheckin";
+import { HydrationTracker, calcHydrationTarget } from "@/components/HydrationTracker";
+import { CalendarClock, Users, Recycle, Camera, Wallet } from "lucide-react";
 import type { DayPlan } from "@/lib/meal-planner";
-import type { EnergyLevel, TimeBucket } from "@/lib/types";
+import type { EnergyLevel, SleepQuality, TimeBucket } from "@/lib/types";
 import { calcDailyTargets } from "@/lib/nutrition";
 
 const COMING_SOON = [
-  { Icon: Moon, title: "Morning sleep check-in", body: "How you slept will quietly shape the day — lighter after a rough night, more energy the morning after. Wearables (Oura, Apple Health, Garmin) to follow.", tag: "soon" as const },
   { Icon: CalendarClock, title: "Calendar-aware meals", body: "Connect Google Calendar so packed days pull faster meals, and a late dinner becomes a lighter lunch.", tag: "plus" as const },
   { Icon: Users, title: "Household profiles", body: "One shared meal, personalized portions and swaps per person — different goals, different no-go ingredients.", tag: "plus" as const },
   { Icon: Recycle, title: "Smarter anti-waste", body: "Ingredients chained across the week, leftovers reused on purpose, and an end-of-week rescue recipe.", tag: "plus" as const },
@@ -40,6 +41,8 @@ function TodayPage() {
   const { profile, hydrated } = useProfile();
   const { context, update: updateCtx, hydrated: ctxHydrated } = useDailyContext(profile.time);
   const swaps = useSwaps();
+  const { feedback, vote: voteFeedback, getVote } = useMealFeedback();
+  const hydration = useHydration();
   const [plan, setPlan] = useState<DayPlan | null>(null);
   const [useUpDraft, setUseUpDraft] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
@@ -54,7 +57,7 @@ function TodayPage() {
     if (!hydrated || !ctxHydrated) return;
     setPlan(planDay(profile, context));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hydrated, ctxHydrated, context.energy, context.timeToday, context.theme, context.useUp.join(","), profile.onboarded]);
+  }, [hydrated, ctxHydrated, context.energy, context.sleepQuality, context.timeToday, context.theme, context.useUp.join(","), profile.onboarded, feedback.length]);
 
   const greeting = useMemo(() => {
     const h = new Date().getHours();
@@ -143,6 +146,7 @@ function TodayPage() {
         {snap.cycle && <ContextChip label={t.today.contextLabels.cycle} value={phaseLabel(snap.cycle)} />}
         <ContextChip label={t.today.contextLabels.time} value={timeBucketLabel(context.timeToday)} />
         <ContextChip label={t.today.contextLabels.energy} value={energyLabel(context.energy)} />
+        <ContextChip label="Sleep" value={sleepLabel(context.sleepQuality)} />
       </div>
 
       <ThemeSelector
@@ -185,16 +189,10 @@ function TodayPage() {
           ))}
         </div>
 
-        <div className="mb-5 rounded-xl border border-dashed border-stone-warm bg-card/40 px-3 py-3 flex items-center gap-3">
-          <Moon className="size-4 text-ink/40" strokeWidth={1.75} />
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold text-ink/70">How did you sleep?</p>
-            <p className="text-[11px] text-ink/45 leading-snug">
-              Coming soon — meals will adapt to your recovery.
-            </p>
-          </div>
-          <span className="text-[9px] font-bold uppercase tracking-wider text-ink/40">Soon</span>
-        </div>
+        <SleepCheckin
+          value={context.sleepQuality}
+          onChange={(sq) => updateCtx({ sleepQuality: sq })}
+        />
 
         <div className="flex items-center gap-2 bg-card/70 px-3 py-2 rounded-xl border border-stone-warm/70">
           <span className="text-xs text-ink/55 font-medium shrink-0">{t.today.useUp}</span>
@@ -227,6 +225,17 @@ function TodayPage() {
         )}
       </section>
 
+      <HydrationTracker
+        glasses={hydration.glasses}
+        target={calcHydrationTarget(
+          profile.weightKg || 65,
+          snap.training,
+          snap.weather.tempC,
+        )}
+        onAdd={hydration.add}
+        onRemove={hydration.remove}
+      />
+
       <section className="px-6 space-y-4">
         <MealCard
           recipe={plan.breakfast}
@@ -234,6 +243,8 @@ function TodayPage() {
           onSwap={() => onSwap("breakfast")}
           canSwap={swaps.canSwap}
           showCalories={profile.guidance === "calories"}
+          feedbackVote={getVote(plan.breakfast.id)}
+          onFeedback={(v) => voteFeedback(plan.breakfast.id, v)}
         />
         <MealCard
           recipe={plan.lunch}
@@ -241,6 +252,8 @@ function TodayPage() {
           onSwap={() => onSwap("lunch")}
           canSwap={swaps.canSwap}
           showCalories={profile.guidance === "calories"}
+          feedbackVote={getVote(plan.lunch.id)}
+          onFeedback={(v) => voteFeedback(plan.lunch.id, v)}
         />
         {showSnack && (
           <SnackCard
@@ -259,6 +272,8 @@ function TodayPage() {
           onSwap={() => onSwap("dinner")}
           canSwap={swaps.canSwap}
           showCalories={profile.guidance === "calories"}
+          feedbackVote={getVote(plan.dinner.id)}
+          onFeedback={(v) => voteFeedback(plan.dinner.id, v)}
         />
       </section>
 
@@ -306,6 +321,9 @@ function capitalize(s: string) {
 }
 function energyLabel(e: EnergyLevel) {
   return e === "low" ? "Low" : e === "normal" ? "Normal" : "Motivated";
+}
+function sleepLabel(s: SleepQuality) {
+  return s === "rough" ? "Rough" : s === "ok" ? "OK" : "Great";
 }
 function timeBucketLabel(tb: TimeBucket) {
   return tb === "t10" ? "10 min" : tb === "t20" ? "20 min" : tb === "t45" ? "45 min" : "Prep";
