@@ -1,9 +1,11 @@
 import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-router";
-import { ArrowLeft, Clock, Flame, RefreshCw, Wallet } from "lucide-react";
+import { ArrowLeft, Clock, Flame, RefreshCw, Wallet, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { recipeById, snapshotContext, buildWhyToday, swapMeal } from "@/lib/meal-planner";
 import { useDailyContext, useProfile, useSwaps } from "@/lib/profile";
 import { t } from "@/lib/strings";
+import { photoUrl } from "@/lib/recipe-photos";
+import { portionScale, calorieScaleForMeal } from "@/lib/nutrition";
 
 export const Route = createFileRoute("/recipe/$id")({
   head: () => ({
@@ -53,6 +55,11 @@ function RecipePage() {
 
   const scale = Math.max(1, profile.household);
   const showCalories = profile.guidance === "calories";
+  const bodyScale = showCalories
+    ? calorieScaleForMeal(profile, recipe.calories)
+    : portionScale(profile);
+  const scalePct = Math.round((bodyScale - 1) * 100);
+  const totalScale = scale * bodyScale;
 
   const handleSwap = () => {
     if (!swaps.canSwap) return;
@@ -66,17 +73,12 @@ function RecipePage() {
     <div className="min-h-screen bg-cream pb-32">
       {/* Hero */}
       <div className="relative">
-        <div
-          className="aspect-[5/4] w-full grid place-items-center"
-          style={{
-            background:
-              "linear-gradient(135deg, color-mix(in oklab, var(--terracotta) 18%, var(--cream)) 0%, color-mix(in oklab, var(--sage) 22%, var(--cream)) 100%)",
-          }}
-        >
-          <span className="font-serif italic text-3xl text-ink/40 px-8 text-center text-balance">
-            {recipe.name}
-          </span>
-        </div>
+        <img
+          src={photoUrl(recipe.id, recipe.mealType, { w: 1000, h: 800 })}
+          alt={recipe.imagePrompt || recipe.name}
+          className="aspect-[5/4] w-full object-cover bg-stone-warm/40"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-cream/30" />
         <button
           onClick={() => history.back()}
           className="absolute top-5 left-5 size-10 rounded-full bg-cream/95 backdrop-blur grid place-items-center shadow-sm"
@@ -97,10 +99,20 @@ function RecipePage() {
             <span className="inline-flex items-center gap-1.5"><Wallet className="size-3.5"/>{labelFromBudget(recipe.budget)}</span>
           </div>
 
-          <div className="bg-sage-soft border border-sage/15 rounded-2xl p-4 mb-6">
+          <div className="bg-sage-soft border border-sage/15 rounded-2xl p-4 mb-4">
             <span className="eyebrow text-sage block mb-1">{t.today.why}</span>
             <p className="text-sm text-ink/80 leading-relaxed">{why}</p>
           </div>
+
+          {scalePct !== 0 && (
+            <div className="mb-6 rounded-2xl bg-terracotta-soft/70 border border-terracotta/15 px-4 py-3 flex items-start gap-2">
+              <Sparkles className="size-4 text-terracotta shrink-0 mt-0.5" />
+              <p className="text-xs text-ink/75 leading-relaxed">
+                {t.recipe.scaleBanner(scalePct)}
+              </p>
+            </div>
+          )}
+
 
           {/* Macros or portions */}
           {showCalories ? (
