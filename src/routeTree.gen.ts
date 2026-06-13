@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WeekRouteImport } from './routes/week'
 import { Route as TodayRouteImport } from './routes/today'
+import { Route as SnapRouteImport } from './routes/snap'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as PremiumRouteImport } from './routes/premium'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
@@ -26,6 +27,11 @@ const WeekRoute = WeekRouteImport.update({
 const TodayRoute = TodayRouteImport.update({
   id: '/today',
   path: '/today',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SnapRoute = SnapRouteImport.update({
+  id: '/snap',
+  path: '/snap',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsRoute = SettingsRouteImport.update({
@@ -65,6 +71,7 @@ export interface FileRoutesByFullPath {
   '/onboarding': typeof OnboardingRoute
   '/premium': typeof PremiumRoute
   '/settings': typeof SettingsRoute
+  '/snap': typeof SnapRoute
   '/today': typeof TodayRoute
   '/week': typeof WeekRoute
   '/recipe/$id': typeof RecipeIdRoute
@@ -75,6 +82,7 @@ export interface FileRoutesByTo {
   '/onboarding': typeof OnboardingRoute
   '/premium': typeof PremiumRoute
   '/settings': typeof SettingsRoute
+  '/snap': typeof SnapRoute
   '/today': typeof TodayRoute
   '/week': typeof WeekRoute
   '/recipe/$id': typeof RecipeIdRoute
@@ -86,6 +94,7 @@ export interface FileRoutesById {
   '/onboarding': typeof OnboardingRoute
   '/premium': typeof PremiumRoute
   '/settings': typeof SettingsRoute
+  '/snap': typeof SnapRoute
   '/today': typeof TodayRoute
   '/week': typeof WeekRoute
   '/recipe/$id': typeof RecipeIdRoute
@@ -98,6 +107,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/premium'
     | '/settings'
+    | '/snap'
     | '/today'
     | '/week'
     | '/recipe/$id'
@@ -108,6 +118,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/premium'
     | '/settings'
+    | '/snap'
     | '/today'
     | '/week'
     | '/recipe/$id'
@@ -118,6 +129,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/premium'
     | '/settings'
+    | '/snap'
     | '/today'
     | '/week'
     | '/recipe/$id'
@@ -129,6 +141,7 @@ export interface RootRouteChildren {
   OnboardingRoute: typeof OnboardingRoute
   PremiumRoute: typeof PremiumRoute
   SettingsRoute: typeof SettingsRoute
+  SnapRoute: typeof SnapRoute
   TodayRoute: typeof TodayRoute
   WeekRoute: typeof WeekRoute
   RecipeIdRoute: typeof RecipeIdRoute
@@ -148,6 +161,13 @@ declare module '@tanstack/react-router' {
       path: '/today'
       fullPath: '/today'
       preLoaderRoute: typeof TodayRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/snap': {
+      id: '/snap'
+      path: '/snap'
+      fullPath: '/snap'
+      preLoaderRoute: typeof SnapRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings': {
@@ -201,6 +221,7 @@ const rootRouteChildren: RootRouteChildren = {
   OnboardingRoute: OnboardingRoute,
   PremiumRoute: PremiumRoute,
   SettingsRoute: SettingsRoute,
+  SnapRoute: SnapRoute,
   TodayRoute: TodayRoute,
   WeekRoute: WeekRoute,
   RecipeIdRoute: RecipeIdRoute,
@@ -208,3 +229,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

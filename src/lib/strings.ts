@@ -6,6 +6,7 @@ export const t = {
   nav: {
     today: "Today",
     week: "Week",
+    snap: "Snap",
     grocery: "Grocery",
     settings: "Settings",
   },
@@ -28,6 +29,25 @@ export const t = {
         muscle: { label: "Build muscle", desc: "Higher protein, steady carbs" },
         maintain: { label: "Maintain", desc: "Balanced, varied meals" },
         better: { label: "Just eat better", desc: "More whole foods, less stress" },
+      },
+    },
+
+    stats: {
+      title: "A bit about you",
+      sub: "All optional — skip anything you’d rather not share. It helps us tune portions and calorie targets.",
+      whyAsk: "Used only on your device to personalize your meals.",
+      age: "Age",
+      sex: "Sex",
+      sexOptions: { female: "Female", male: "Male", na: "Prefer not to say" },
+      height: "Height (cm)",
+      weight: "Current weight (kg)",
+      target: "Target weight (kg)",
+      activity: "Activity outside training",
+      activityOptions: {
+        sedentary: { label: "Sedentary", desc: "Office job, mostly seated" },
+        light: { label: "Lightly active", desc: "Walking, errands" },
+        active: { label: "Active", desc: "On your feet all day" },
+        veryactive: { label: "Very active", desc: "Physical job" },
       },
     },
 
@@ -151,6 +171,12 @@ export const t = {
     swap: "Swap",
     swapsLeft: (n: number) => `${n} free swaps left today`,
     upgradeForUnlimited: "Upgrade for unlimited swaps",
+    noAlternative: "No alternatives match your filters right now.",
+    snack: {
+      label: "Snack · Anytime",
+      labelPre: "Snack · Pre-training",
+      labelPost: "Snack · Post-training",
+    },
     meals: { breakfast: "Breakfast", lunch: "Lunch", dinner: "Dinner" },
   },
 
@@ -162,6 +188,26 @@ export const t = {
     forPeople: (n: number) => `Scaled for ${n} ${n === 1 ? "person" : "people"}`,
     swap: "Swap this meal",
     back: "Back",
+    scaleBanner: (pct: number) =>
+      `Portions tuned ${pct > 0 ? "+" : ""}${pct}% to your stats`,
+  },
+
+  snap: {
+    title: "Snap a dish",
+    sub: "Photograph a restaurant plate and get a home version — cheaper, healthier, or higher-protein if you want.",
+    cta: "Take or upload a photo",
+    hint: "Works with the camera or a photo from your library",
+    lockedTitle: "Plus feature",
+    lockedBody: "AI dish recognition arrives with Forkcast Plus.",
+    unlock: "Unlock with Plus",
+    comingSoonNote: "Saved. AI recipe generation arrives with Plus.",
+    steps: [
+      "Snap or upload a photo of the dish you loved.",
+      "Forkcast identifies the dish and its likely ingredients.",
+      "You get a home recipe tuned to your goal, time and diet.",
+    ],
+    footer:
+      "Snap helps you cook the restaurant meals you actually love, at home — without copying calorie bombs.",
   },
 
   week: {
@@ -206,22 +252,23 @@ export const t = {
 
   settings: {
     title: "Settings",
-    profile: "Profile",
-    preferences: "Preferences",
-    cycle: "Cycle tracking",
-    about: "About",
-    editGoal: "Goal",
-    editGuidance: "Guidance style",
-    editTime: "Time available",
-    editEffort: "Cooking effort",
-    editDiet: "Dietary restrictions",
-    editHated: "Foods you hate",
-    editBudget: "Budget",
-    editHousehold: "Household size",
-    editCity: "City",
+    sectionGoal: "Your goal",
+    sectionStats: "About you",
+    sectionCooking: "Cooking preferences",
+    sectionTraining: "Training schedule",
+    sectionDiet: "Dietary needs",
+    sectionCycle: "Cycle tracking",
+    sectionHousehold: "Household & budget",
+    sectionLocation: "Location",
+    sectionAccount: "Account",
     cycleDisclaimer:
       "Cycle suggestions are general wellness guidance, not medical advice.",
     reset: "Reset onboarding",
     upgrade: "Upgrade to Plus",
+    currentPlan: "Current plan",
+    free: "Free",
+    version: "Version",
+    resetConfirm: "Reset all your data? This will restart onboarding.",
+    statsNote: "Used on this device to tune calorie targets and portions.",
   },
 };

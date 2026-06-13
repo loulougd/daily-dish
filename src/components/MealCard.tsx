@@ -1,11 +1,17 @@
 import { Link } from "@tanstack/react-router";
-import { RefreshCw, Clock, Flame, Wallet } from "lucide-react";
+import { RefreshCw, Clock, Flame, Wallet, Sparkles } from "lucide-react";
+import { useEffect, useState } from "react";
 import type { Recipe } from "@/lib/types";
 import { t } from "@/lib/strings";
+import { photoUrl } from "@/lib/recipe-photos";
 
 const effortLabel = { nobrain: "No-brain", simple: "Simple", proper: "Properly" } as const;
 const budgetLabel = { low: "Low", medium: "Med", high: "High" } as const;
-const mealLabel = { breakfast: t.today.meals.breakfast, lunch: t.today.meals.lunch, dinner: t.today.meals.dinner };
+const mealLabel = {
+  breakfast: t.today.meals.breakfast,
+  lunch: t.today.meals.lunch,
+  dinner: t.today.meals.dinner,
+} as const;
 
 interface Props {
   recipe: Recipe;
@@ -13,50 +19,65 @@ interface Props {
   onSwap: () => void;
   canSwap: boolean;
   showCalories: boolean;
+  badge?: string; // e.g. "POST-TRAINING"
 }
 
-export function MealCard({ recipe, why, onSwap, canSwap, showCalories }: Props) {
+export function MealCard({ recipe, why, onSwap, canSwap, showCalories, badge }: Props) {
+  // Fade-out/in animation when the recipe changes via swap
+  const [fading, setFading] = useState(false);
+  useEffect(() => {
+    setFading(true);
+    const id = requestAnimationFrame(() => setFading(false));
+    return () => cancelAnimationFrame(id);
+  }, [recipe.id]);
+
+  const photo = photoUrl(recipe.id, recipe.mealType, { w: 800, h: 450 });
+  const label = badge
+    ? `${mealLabel[recipe.mealType]} · ${badge}`
+    : mealLabel[recipe.mealType];
+
   return (
-    <article className="bg-card rounded-3xl overflow-hidden shadow-sm border border-stone-warm/60">
+    <article
+      className={`bg-card rounded-2xl overflow-hidden border border-stone-warm/50 transition-all duration-300 ease-out ${
+        fading ? "opacity-0 scale-[0.98]" : "opacity-100 scale-100"
+      }`}
+    >
       <div className="relative">
-        <div
-          className="w-full aspect-[4/3] grid place-items-center"
-          style={{
-            background:
-              "linear-gradient(135deg, color-mix(in oklab, var(--terracotta) 12%, var(--cream)) 0%, color-mix(in oklab, var(--sage) 15%, var(--cream)) 100%)",
-          }}
-          aria-label={recipe.imagePrompt}
-        >
-          <span className="font-serif italic text-2xl text-ink/40 px-6 text-center text-balance">
-            {recipe.name}
-          </span>
-        </div>
-        <span className="absolute top-3 left-3 eyebrow bg-cream/90 backdrop-blur px-2.5 py-1 rounded-full text-ink/70">
-          {mealLabel[recipe.mealType]}
+        <img
+          src={photo}
+          alt={recipe.imagePrompt || recipe.name}
+          loading="lazy"
+          className="w-full aspect-[16/9] object-cover bg-stone-warm/40"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-ink/65 via-ink/0 to-transparent" />
+        <span className="absolute bottom-3 left-3 text-[10px] font-bold uppercase tracking-widest text-cream">
+          {label}
         </span>
-        <span className="absolute top-3 right-3 eyebrow bg-ink/85 text-cream px-2.5 py-1 rounded-full">
+        <span className="absolute top-3 right-3 text-[10px] font-bold uppercase tracking-wider bg-cream/95 backdrop-blur px-2 py-1 rounded-full text-ink/80">
           {recipe.prepMinutes} min
         </span>
       </div>
 
-      <div className="p-5">
-        <h3 className="font-serif text-2xl leading-tight mb-2 text-ink">{recipe.name}</h3>
+      <div className="p-4">
+        <h3 className="font-serif text-lg leading-tight mb-1.5 line-clamp-2 text-ink">
+          {recipe.name}
+        </h3>
 
-        <div className="flex items-center gap-3 text-xs text-ink/60 mb-4">
-          <span className="inline-flex items-center gap-1.5"><Clock className="size-3.5" strokeWidth={1.75}/>{recipe.prepMinutes}m</span>
+        <div className="flex items-center gap-2.5 text-xs text-ink/55 mb-3">
+          <span className="inline-flex items-center gap-1"><Clock className="size-3" strokeWidth={2}/>{recipe.prepMinutes}m</span>
           <span className="size-1 rounded-full bg-ink/20" />
-          <span className="inline-flex items-center gap-1.5"><Flame className="size-3.5" strokeWidth={1.75}/>{effortLabel[recipe.effort]}</span>
+          <span className="inline-flex items-center gap-1"><Flame className="size-3" strokeWidth={2}/>{effortLabel[recipe.effort]}</span>
           <span className="size-1 rounded-full bg-ink/20" />
-          <span className="inline-flex items-center gap-1.5"><Wallet className="size-3.5" strokeWidth={1.75}/>{budgetLabel[recipe.budget]}</span>
+          <span className="inline-flex items-center gap-1"><Wallet className="size-3" strokeWidth={2}/>{budgetLabel[recipe.budget]}</span>
         </div>
 
-        <div className="bg-sage-soft border border-sage/15 rounded-2xl p-3 mb-4">
-          <span className="eyebrow text-sage block mb-1">{t.today.why}</span>
-          <p className="text-sm text-ink/80 leading-relaxed">{why}</p>
+        <div className="bg-sage-soft/60 rounded-xl p-3 flex gap-2 items-start">
+          <Sparkles className="size-3.5 text-sage shrink-0 mt-0.5" strokeWidth={2} />
+          <p className="text-xs text-ink/70 leading-relaxed line-clamp-2">{why}</p>
         </div>
 
         {showCalories && (
-          <div className="flex items-center gap-3 text-[11px] text-ink/55 mb-4">
+          <div className="flex items-center gap-3 text-[11px] text-ink/55 mt-3">
             <span><strong className="text-ink/80">{recipe.calories}</strong> kcal</span>
             <span>P {recipe.protein}g</span>
             <span>C {recipe.carbs}g</span>
@@ -64,11 +85,11 @@ export function MealCard({ recipe, why, onSwap, canSwap, showCalories }: Props) 
           </div>
         )}
 
-        <div className="grid grid-cols-[1fr_auto] gap-2">
+        <div className="grid grid-cols-[1fr_auto] gap-2 mt-3">
           <Link
             to="/recipe/$id"
             params={{ id: recipe.id }}
-            className="py-3 rounded-2xl bg-ink text-cream text-sm font-semibold text-center active:scale-[0.98] transition-transform"
+            className="py-2.5 rounded-xl bg-ink text-cream text-sm font-semibold text-center active:scale-[0.98] transition-transform"
           >
             {t.today.viewRecipe}
           </Link>
@@ -76,11 +97,10 @@ export function MealCard({ recipe, why, onSwap, canSwap, showCalories }: Props) 
             type="button"
             onClick={onSwap}
             disabled={!canSwap}
-            className="px-4 py-3 rounded-2xl border border-stone-warm bg-card text-ink/80 text-sm font-semibold inline-flex items-center gap-2 disabled:opacity-40 active:scale-[0.98] transition-transform"
-            aria-label="Swap this meal"
+            className="size-10 rounded-xl border border-stone-warm bg-card text-ink/75 inline-flex items-center justify-center disabled:opacity-40 active:scale-[0.95] transition-transform"
+            aria-label={t.today.swap}
           >
-            <RefreshCw className="size-4" strokeWidth={1.75} />
-            {t.today.swap}
+            <RefreshCw className="size-4" strokeWidth={2} />
           </button>
         </div>
       </div>

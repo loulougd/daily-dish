@@ -8,10 +8,13 @@ export type EnergyLevel = "low" | "normal" | "motivated";
 export type CyclePhase = "menstrual" | "follicular" | "ovulation" | "luteal";
 export type MealType = "breakfast" | "lunch" | "dinner";
 
+export type Sex = "female" | "male" | "na";
+export type ActivityLevel = "sedentary" | "light" | "active" | "veryactive";
+
 export interface CycleSettings {
   enabled: boolean;
-  lastPeriodISO?: string; // YYYY-MM-DD
-  cycleLength: number; // days
+  lastPeriodISO?: string;
+  cycleLength: number;
 }
 
 export interface UserProfile {
@@ -19,16 +22,22 @@ export interface UserProfile {
   guidance: Guidance;
   time: TimeBucket;
   effort: Effort;
-  training: Record<number, Intensity>; // 0=Sun … 6=Sat
-  diet: string[]; // tags
+  training: Record<number, Intensity>;
+  diet: string[];
   dietOther: string;
   hated: string[];
-  style: number; // 0..100  (0=clean, 50=balanced, 100=comfort)
+  style: number;
   budget: Budget;
   household: number;
   city: string;
   cycle: CycleSettings;
-  // Runtime
+  // Biometrics (all optional — 0 means "not set")
+  age: number;
+  sex: Sex;
+  heightCm: number;
+  weightKg: number;
+  targetWeightKg: number;
+  activityLevel: ActivityLevel;
   onboarded: boolean;
 }
 
@@ -36,7 +45,7 @@ export interface DailyContext {
   energy: EnergyLevel;
   timeToday: TimeBucket;
   useUp: string[];
-  dateISO: string; // YYYY-MM-DD
+  dateISO: string;
 }
 
 export interface Recipe {
@@ -47,17 +56,17 @@ export interface Recipe {
   prepMinutes: number;
   effort: Effort;
   budget: Budget;
-  tags: string[]; // dietary tags it satisfies, e.g. ["vegetarian","gluten-free"]
-  contains: string[]; // ingredient keywords used for hate-food filtering
+  tags: string[];
+  contains: string[];
   ingredients: { name: string; qtyPerServing: string; category: GroceryCategory }[];
   steps: string[];
-  calories: number; // per serving
+  calories: number;
   protein: number;
   carbs: number;
   fats: number;
   portions: { protein: string; carbs: string; veg: string; fats: string };
-  warmth: "warm" | "cool" | "neutral"; // weather match
-  carbDensity: "low" | "medium" | "high"; // training match
+  warmth: "warm" | "cool" | "neutral";
+  carbDensity: "low" | "medium" | "high";
   style: "clean" | "balanced" | "comfort";
 }
 
@@ -71,6 +80,6 @@ export type GroceryCategory =
 
 export interface Weather {
   tempC: number;
-  condition: string; // "Cloudy", "Sunny", "Rain"…
+  condition: string;
   feel: "cold" | "cool" | "mild" | "warm" | "hot";
 }
