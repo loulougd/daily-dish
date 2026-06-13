@@ -152,7 +152,7 @@ function RecipePage() {
                 <li key={i.name} className="flex items-baseline justify-between px-4 py-3">
                   <span className="text-sm text-ink">{i.name}</span>
                   <span className="text-xs font-mono text-ink/60">
-                    {scaleQty(i.qtyPerServing, scale)}
+                    {scaleQty(i.qtyPerServing, totalScale)}
                   </span>
                 </li>
               ))}
@@ -199,9 +199,9 @@ function Stat({ label, value }: { label: string; value: string | number }) {
 }
 
 function scaleQty(qty: string, n: number): string {
-  if (n <= 1) return qty;
+  if (Math.abs(n - 1) < 0.01) return qty;
   const m = qty.match(/^([\d.,/]+)\s*(.*)$/);
-  if (!m) return `${qty} × ${n}`;
+  if (!m) return `${qty} × ${n.toFixed(1)}`;
   const numStr = m[1].replace(",", ".");
   let value: number;
   if (numStr.includes("/")) {
@@ -210,7 +210,7 @@ function scaleQty(qty: string, n: number): string {
   } else {
     value = Number(numStr);
   }
-  if (!isFinite(value)) return `${qty} × ${n}`;
+  if (!isFinite(value)) return `${qty} × ${n.toFixed(1)}`;
   const scaled = value * n;
   const rounded = scaled >= 10 ? Math.round(scaled) : Math.round(scaled * 10) / 10;
   return `${rounded} ${m[2]}`.trim();
