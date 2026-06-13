@@ -4,12 +4,15 @@ import { Check, Plus, X } from "lucide-react";
 import { useProfile } from "@/lib/profile";
 import { t } from "@/lib/strings";
 import type {
+  ActivityLevel,
   Budget,
   Effort,
   Goal,
   Guidance,
   Intensity,
+  Sex,
   TimeBucket,
+  UserProfile,
 } from "@/lib/types";
 
 export const Route = createFileRoute("/onboarding")({
@@ -28,6 +31,7 @@ export const Route = createFileRoute("/onboarding")({
 const STEPS = [
   "welcome",
   "goal",
+  "stats",
   "guidance",
   "time",
   "effort",
@@ -99,6 +103,7 @@ function Onboarding() {
             onSelect={(v) => update({ goal: v as Goal })}
           />
         )}
+        {step === "stats" && <StatsStep profile={profile} update={update} />}
         {step === "guidance" && (
           <SingleChoiceStep
             title={t.onboarding.guidance.title}
@@ -611,5 +616,146 @@ function CycleStep({
         {t.onboarding.cycle.disclaimer}
       </p>
     </div>
+  );
+}
+
+function StatsStep({
+  profile,
+  update,
+}: {
+  profile: UserProfile;
+  update: (p: Partial<UserProfile>) => void;
+}) {
+  const showTarget = profile.goal === "lose" || profile.goal === "muscle";
+  return (
+    <div>
+      <StepHeader title={t.onboarding.stats.title} sub={t.onboarding.stats.sub} />
+      <div className="space-y-3">
+        <div className="grid grid-cols-2 gap-3">
+          <NumInput
+            label={t.onboarding.stats.age}
+            value={profile.age}
+            suffix="yrs"
+            onChange={(age) => update({ age })}
+          />
+          <SexSelect
+            value={profile.sex}
+            onChange={(sex) => update({ sex })}
+          />
+          <NumInput
+            label={t.onboarding.stats.height}
+            value={profile.heightCm}
+            suffix="cm"
+            onChange={(heightCm) => update({ heightCm })}
+          />
+          <NumInput
+            label={t.onboarding.stats.weight}
+            value={profile.weightKg}
+            suffix="kg"
+            onChange={(weightKg) => update({ weightKg })}
+          />
+          {showTarget && (
+            <NumInput
+              label={t.onboarding.stats.target}
+              value={profile.targetWeightKg}
+              suffix="kg"
+              onChange={(targetWeightKg) => update({ targetWeightKg })}
+            />
+          )}
+        </div>
+        <div>
+          <span className="eyebrow text-ink/55 block mb-2">
+            {t.onboarding.stats.activity}
+          </span>
+          <div className="space-y-2">
+            {(Object.entries(t.onboarding.stats.activityOptions) as [
+              ActivityLevel,
+              { label: string; desc: string },
+            ][]).map(([id, o]) => {
+              const active = profile.activityLevel === id;
+              return (
+                <button
+                  key={id}
+                  onClick={() => update({ activityLevel: id })}
+                  className={`w-full px-4 py-3 rounded-2xl border text-left flex items-center justify-between ${
+                    active
+                      ? "border-sage bg-sage-soft/40"
+                      : "border-stone-warm bg-card"
+                  }`}
+                >
+                  <span>
+                    <span className={`block text-sm font-semibold ${active ? "text-sage" : "text-ink"}`}>
+                      {o.label}
+                    </span>
+                    <span className="text-xs text-ink/55">{o.desc}</span>
+                  </span>
+                  {active && <Check className="size-4 text-sage" />}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+      <p className="mt-4 text-[11px] text-ink/45 italic leading-relaxed">
+        {t.onboarding.stats.whyAsk}
+      </p>
+    </div>
+  );
+}
+
+function NumInput({
+  label,
+  value,
+  suffix,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  suffix: string;
+  onChange: (v: number) => void;
+}) {
+  return (
+    <label className="block">
+      <span className="eyebrow text-ink/55 block mb-1.5">{label}</span>
+      <div className="flex items-center gap-1 bg-card border border-stone-warm rounded-2xl px-4 py-3">
+        <input
+          type="number"
+          inputMode="numeric"
+          min={0}
+          value={value || ""}
+          placeholder="—"
+          onChange={(e) => onChange(Number(e.target.value) || 0)}
+          className="bg-transparent text-base font-semibold outline-none w-full min-w-0 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+        />
+        <span className="text-xs text-ink/40">{suffix}</span>
+      </div>
+    </label>
+  );
+}
+
+function SexSelect({
+  value,
+  onChange,
+}: {
+  value: Sex;
+  onChange: (v: Sex) => void;
+}) {
+  return (
+    <label className="block">
+      <span className="eyebrow text-ink/55 block mb-1.5">{t.onboarding.stats.sex}</span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value as Sex)}
+        className="w-full px-4 py-3 rounded-2xl bg-card border border-stone-warm text-sm font-semibold outline-none"
+      >
+        {(Object.entries(t.onboarding.stats.sexOptions) as [Sex, string][]).map(
+          ([id, label]) => (
+            <option key={id} value={id}>
+              {label}
+            </option>
+          ),
+        )}
+      </select>
+    </label>
   );
 }

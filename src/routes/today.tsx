@@ -1,54 +1,27 @@
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useDailyContext, useProfile, useSwaps } from "@/lib/profile";
-import { planDay, swapMeal } from "@/lib/meal-planner";
+import { planDay, swapMeal, snapshotContext } from "@/lib/meal-planner";
 import { t } from "@/lib/strings";
 import { phaseLabel } from "@/lib/cycle";
 import { AppShell } from "@/components/AppShell";
 import { ContextChip } from "@/components/ContextChip";
 import { MealCard } from "@/components/MealCard";
+import { SnackCard } from "@/components/SnackCard";
 import { ComingSoon } from "@/components/ComingSoon";
+import { DailyOverview } from "@/components/DailyOverview";
 import { Moon, CalendarClock, Users, Recycle, Camera, Wallet } from "lucide-react";
 import type { DayPlan } from "@/lib/meal-planner";
 import type { EnergyLevel, TimeBucket } from "@/lib/types";
+import { calcDailyTargets } from "@/lib/nutrition";
 
 const COMING_SOON = [
-  {
-    Icon: Moon,
-    title: "Morning sleep check-in",
-    body: "Tell Forkcast how you slept and the day adapts — lighter after a rough night, more energizing after low recovery. Wearable sync (Oura, Apple Health, Garmin) to follow.",
-    tag: "soon" as const,
-  },
-  {
-    Icon: CalendarClock,
-    title: "Calendar-aware meals",
-    body: "Connect Google Calendar so packed days quietly pull faster meals, and a late dinner becomes a lighter lunch.",
-    tag: "plus" as const,
-  },
-  {
-    Icon: Users,
-    title: "Household profiles",
-    body: "One shared meal, personalized portions and swaps per person — different goals, different no-go ingredients.",
-    tag: "plus" as const,
-  },
-  {
-    Icon: Recycle,
-    title: "Smarter anti-waste",
-    body: "Ingredients chained across the week, leftovers reused on purpose, and an end-of-week rescue recipe for the orphans.",
-    tag: "plus" as const,
-  },
-  {
-    Icon: Camera,
-    title: "Restaurant photo → recipe",
-    body: "Snap a dish you loved and get a realistic home version — cheaper, healthier, or higher-protein variants included.",
-    tag: "plus" as const,
-  },
-  {
-    Icon: Wallet,
-    title: "Budget intelligence",
-    body: "Meals tuned to your real weekly spend, with budget-friendly and premium grocery swaps when you want them.",
-    tag: "soon" as const,
-  },
+  { Icon: Moon, title: "Morning sleep check-in", body: "How you slept will quietly shape the day — lighter after a rough night, more energy the morning after. Wearables (Oura, Apple Health, Garmin) to follow.", tag: "soon" as const },
+  { Icon: CalendarClock, title: "Calendar-aware meals", body: "Connect Google Calendar so packed days pull faster meals, and a late dinner becomes a lighter lunch.", tag: "plus" as const },
+  { Icon: Users, title: "Household profiles", body: "One shared meal, personalized portions and swaps per person — different goals, different no-go ingredients.", tag: "plus" as const },
+  { Icon: Recycle, title: "Smarter anti-waste", body: "Ingredients chained across the week, leftovers reused on purpose, and an end-of-week rescue recipe.", tag: "plus" as const },
+  { Icon: Camera, title: "Restaurant photo → recipe", body: "Snap a dish you loved and get a realistic home version — cheaper, healthier or higher-protein.", tag: "plus" as const },
+  { Icon: Wallet, title: "Budget intelligence", body: "Meals tuned to your real weekly spend, with budget-friendly and premium swaps when you want them.", tag: "soon" as const },
 ];
 
 export const Route = createFileRoute("/today")({
@@ -63,26 +36,17 @@ export const Route = createFileRoute("/today")({
 
 function TodayPage() {
   const { profile, hydrated } = useProfile();
-  const { context, update: updateCtx, hydrated: ctxHydrated } = useDailyContext(
-    profile.time,
-  );
+  const { context, update: updateCtx, hydrated: ctxHydrated } = useDailyContext(profile.time);
   const swaps = useSwaps();
   const [plan, setPlan] = useState<DayPlan | null>(null);
   const [useUpDraft, setUseUpDraft] = useState("");
+  const [notice, setNotice] = useState<string | null>(null);
 
-  // Build the plan once the user + ctx hydrate; rebuild when context inputs change
   useEffect(() => {
     if (!hydrated || !ctxHydrated) return;
     setPlan(planDay(profile, context));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    hydrated,
-    ctxHydrated,
-    context.energy,
-    context.timeToday,
-    context.useUp.join(","),
-    profile.onboarded,
-  ]);
+  }, [hydrated, ctxHydrated, context.energy, context.timeToday, context.useUp.join(","), profile.onboarded]);
 
   const greeting = useMemo(() => {
     const h = new Date().getHours();
@@ -104,12 +68,24 @@ function TodayPage() {
 
   const { snapshot: snap } = plan;
   const headlineSentence = buildHeadline(snap, context, profile.city);
+  const trainingToday = snap.training;
+  const targets = calcDailyTargets(profile, trainingToday);
+  const consumed = {
+    kcal: plan.breakfast.calories + plan.lunch.calories + plan.dinner.calories,
+    protein: plan.breakfast.protein + plan.lunch.protein + plan.dinner.protein,
+    carbs: plan.breakfast.carbs + plan.lunch.carbs + plan.dinner.carbs,
+    fats: plan.breakfast.fats + plan.lunch.fats + plan.dinner.fats,
+  };
 
   const onSwap = (meal: "breakfast" | "lunch" | "dinner") => {
     if (!swaps.canSwap) return;
     const current = plan[meal];
     const next = swapMeal(meal, current.id, profile, context);
-    if (!next) return;
+    if (!next) {
+      setNotice(t.today.noAlternative);
+      setTimeout(() => setNotice(null), 2500);
+      return;
+    }
     swaps.consume();
     setPlan({
       ...plan,
@@ -129,6 +105,12 @@ function TodayPage() {
     setUseUpDraft("");
   };
 
+  const showSnack = trainingToday !== "rest";
+  const snackBadge =
+    trainingToday === "intense" || trainingToday === "moderate"
+      ? "PRE-TRAINING"
+      : "POST-TRAINING";
+
   return (
     <AppShell>
       <header className="px-6 pt-10 pb-5">
@@ -143,35 +125,19 @@ function TodayPage() {
         </p>
       </header>
 
-      {/* Context bar */}
       <div className="flex gap-2.5 overflow-x-auto no-scrollbar px-6 pb-5">
-        <ContextChip
-          label={t.today.contextLabels.weather}
-          value={`${snap.weather.tempC}°C ${snap.weather.condition}`}
-        />
+        <ContextChip label={t.today.contextLabels.weather} value={`${snap.weather.tempC}°C ${snap.weather.condition}`} />
         <ContextChip
           label={t.today.contextLabels.training}
           value={snap.training === "rest" ? "Rest day" : capitalize(snap.training)}
           accent={snap.training === "intense"}
         />
-        {snap.cycle && (
-          <ContextChip
-            label={t.today.contextLabels.cycle}
-            value={phaseLabel(snap.cycle)}
-          />
-        )}
-        <ContextChip
-          label={t.today.contextLabels.time}
-          value={timeBucketLabel(context.timeToday)}
-        />
-        <ContextChip
-          label={t.today.contextLabels.energy}
-          value={energyLabel(context.energy)}
-        />
+        {snap.cycle && <ContextChip label={t.today.contextLabels.cycle} value={phaseLabel(snap.cycle)} />}
+        <ContextChip label={t.today.contextLabels.time} value={timeBucketLabel(context.timeToday)} />
+        <ContextChip label={t.today.contextLabels.energy} value={energyLabel(context.energy)} />
       </div>
 
-      {/* Check-in */}
-      <section className="mx-6 mb-6 bg-stone-warm/40 rounded-3xl p-5">
+      <section className="mx-6 mb-6 bg-stone-warm/40 rounded-2xl p-5">
         <p className="eyebrow text-ink/55 mb-3">{t.today.checkin}</p>
         <div className="grid grid-cols-3 gap-2 mb-5">
           {(["low", "normal", "motivated"] as EnergyLevel[]).map((e) => (
@@ -206,7 +172,6 @@ function TodayPage() {
           ))}
         </div>
 
-        {/* Sleep check-in — placeholder for a future signal (wearables, manual) */}
         <div className="mb-5 rounded-xl border border-dashed border-stone-warm bg-card/40 px-3 py-3 flex items-center gap-3">
           <Moon className="size-4 text-ink/40" strokeWidth={1.75} />
           <div className="flex-1 min-w-0">
@@ -215,11 +180,8 @@ function TodayPage() {
               Coming soon — meals will adapt to your recovery.
             </p>
           </div>
-          <span className="text-[9px] font-bold uppercase tracking-wider text-ink/40">
-            Soon
-          </span>
+          <span className="text-[9px] font-bold uppercase tracking-wider text-ink/40">Soon</span>
         </div>
-
 
         <div className="flex items-center gap-2 bg-card/70 px-3 py-2 rounded-xl border border-stone-warm/70">
           <span className="text-xs text-ink/55 font-medium shrink-0">{t.today.useUp}</span>
@@ -242,9 +204,7 @@ function TodayPage() {
             {context.useUp.map((u) => (
               <button
                 key={u}
-                onClick={() =>
-                  updateCtx({ useUp: context.useUp.filter((x) => x !== u) })
-                }
+                onClick={() => updateCtx({ useUp: context.useUp.filter((x) => x !== u) })}
                 className="px-2.5 py-1 rounded-full bg-terracotta-soft text-terracotta text-xs font-semibold"
               >
                 {u} ×
@@ -254,22 +214,45 @@ function TodayPage() {
         )}
       </section>
 
-      {/* Meal cards */}
-      <section className="px-6 space-y-5">
-        {(["breakfast", "lunch", "dinner"] as const).map((m) => (
-          <MealCard
-            key={m}
-            recipe={plan[m]}
-            why={plan.whys[m]}
-            onSwap={() => onSwap(m)}
-            canSwap={swaps.canSwap}
-            showCalories={profile.guidance === "calories"}
+      <section className="px-6 space-y-4">
+        <MealCard
+          recipe={plan.breakfast}
+          why={plan.whys.breakfast}
+          onSwap={() => onSwap("breakfast")}
+          canSwap={swaps.canSwap}
+          showCalories={profile.guidance === "calories"}
+        />
+        <MealCard
+          recipe={plan.lunch}
+          why={plan.whys.lunch}
+          onSwap={() => onSwap("lunch")}
+          canSwap={swaps.canSwap}
+          showCalories={profile.guidance === "calories"}
+        />
+        {showSnack && (
+          <SnackCard
+            label={snackBadge === "PRE-TRAINING" ? t.today.snack.labelPre : t.today.snack.labelPost}
+            name={snackBadge === "PRE-TRAINING" ? "Banana + nut butter" : "Greek yogurt + honey"}
+            note={
+              snackBadge === "PRE-TRAINING"
+                ? "Quick carbs ~45 min before training to fuel the session."
+                : "Protein + carbs within an hour to kick off recovery."
+            }
           />
-        ))}
+        )}
+        <MealCard
+          recipe={plan.dinner}
+          why={plan.whys.dinner}
+          onSwap={() => onSwap("dinner")}
+          canSwap={swaps.canSwap}
+          showCalories={profile.guidance === "calories"}
+        />
       </section>
 
-      <div className="px-6 mt-6 text-center text-xs text-ink/50">
-        {swaps.canSwap ? (
+      <div className="px-6 mt-5 text-center text-xs text-ink/50">
+        {notice ? (
+          <span className="text-terracotta font-semibold">{notice}</span>
+        ) : swaps.canSwap ? (
           t.today.swapsLeft(swaps.remaining)
         ) : (
           <a href="/premium" className="text-terracotta font-semibold underline">
@@ -278,13 +261,17 @@ function TodayPage() {
         )}
       </div>
 
+      {profile.guidance === "calories" && (
+        <DailyOverview consumed={consumed} targets={targets} />
+      )}
+
       <ComingSoon items={COMING_SOON} />
     </AppShell>
   );
 }
 
 function buildHeadline(
-  snap: ReturnType<typeof import("@/lib/meal-planner").snapshotContext>,
+  snap: ReturnType<typeof snapshotContext>,
   ctx: { energy: EnergyLevel; timeToday: TimeBucket },
   city: string,
 ): { title: string; body: string } {
@@ -297,7 +284,7 @@ function buildHeadline(
   if (snap.training !== "rest") parts.push(`${snap.training} session ahead`);
   if (ctx.energy === "low") parts.push("low energy — quick meals");
   else if (ctx.energy === "motivated") parts.push("you’re motivated — a real cook is on the table");
-  const body = `Building a menu around ${parts.join(", ")}.`;
+  const body = `Here’s what fits today: ${parts.join(", ")}.`;
   return { title, body };
 }
 
@@ -307,6 +294,6 @@ function capitalize(s: string) {
 function energyLabel(e: EnergyLevel) {
   return e === "low" ? "Low" : e === "normal" ? "Normal" : "Motivated";
 }
-function timeBucketLabel(t: TimeBucket) {
-  return t === "t10" ? "10 min" : t === "t20" ? "20 min" : t === "t45" ? "45 min" : "Prep";
+function timeBucketLabel(tb: TimeBucket) {
+  return tb === "t10" ? "10 min" : tb === "t20" ? "20 min" : tb === "t45" ? "45 min" : "Prep";
 }

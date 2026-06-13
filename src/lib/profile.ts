@@ -36,6 +36,12 @@ export const defaultProfile: UserProfile = {
   household: 2,
   city: "Lisbon",
   cycle: { enabled: false, cycleLength: 28 },
+  age: 0,
+  sex: "na",
+  heightCm: 0,
+  weightKg: 0,
+  targetWeightKg: 0,
+  activityLevel: "sedentary",
   onboarded: false,
 };
 
