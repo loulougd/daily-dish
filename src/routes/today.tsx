@@ -277,6 +277,8 @@ function TodayPage() {
           </a>
         )}
       </div>
+
+      <ComingSoon items={COMING_SOON} />
     </AppShell>
   );
 }
