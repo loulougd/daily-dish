@@ -4,12 +4,15 @@ import { Check, Plus, X } from "lucide-react";
 import { useProfile } from "@/lib/profile";
 import { t } from "@/lib/strings";
 import type {
+  ActivityLevel,
   Budget,
   Effort,
   Goal,
   Guidance,
   Intensity,
+  Sex,
   TimeBucket,
+  UserProfile,
 } from "@/lib/types";
 
 export const Route = createFileRoute("/onboarding")({
@@ -28,6 +31,7 @@ export const Route = createFileRoute("/onboarding")({
 const STEPS = [
   "welcome",
   "goal",
+  "stats",
   "guidance",
   "time",
   "effort",
@@ -99,6 +103,7 @@ function Onboarding() {
             onSelect={(v) => update({ goal: v as Goal })}
           />
         )}
+        {step === "stats" && <StatsStep profile={profile} update={update} />}
         {step === "guidance" && (
           <SingleChoiceStep
             title={t.onboarding.guidance.title}
