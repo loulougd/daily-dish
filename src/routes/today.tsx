@@ -7,8 +7,49 @@ import { phaseLabel } from "@/lib/cycle";
 import { AppShell } from "@/components/AppShell";
 import { ContextChip } from "@/components/ContextChip";
 import { MealCard } from "@/components/MealCard";
+import { ComingSoon } from "@/components/ComingSoon";
+import { Moon, CalendarClock, Users, Recycle, Camera, Wallet } from "lucide-react";
 import type { DayPlan } from "@/lib/meal-planner";
 import type { EnergyLevel, TimeBucket } from "@/lib/types";
+
+const COMING_SOON = [
+  {
+    Icon: Moon,
+    title: "Morning sleep check-in",
+    body: "Tell Forkcast how you slept and the day adapts — lighter after a rough night, more energizing after low recovery. Wearable sync (Oura, Apple Health, Garmin) to follow.",
+    tag: "soon" as const,
+  },
+  {
+    Icon: CalendarClock,
+    title: "Calendar-aware meals",
+    body: "Connect Google Calendar so packed days quietly pull faster meals, and a late dinner becomes a lighter lunch.",
+    tag: "plus" as const,
+  },
+  {
+    Icon: Users,
+    title: "Household profiles",
+    body: "One shared meal, personalized portions and swaps per person — different goals, different no-go ingredients.",
+    tag: "plus" as const,
+  },
+  {
+    Icon: Recycle,
+    title: "Smarter anti-waste",
+    body: "Ingredients chained across the week, leftovers reused on purpose, and an end-of-week rescue recipe for the orphans.",
+    tag: "plus" as const,
+  },
+  {
+    Icon: Camera,
+    title: "Restaurant photo → recipe",
+    body: "Snap a dish you loved and get a realistic home version — cheaper, healthier, or higher-protein variants included.",
+    tag: "plus" as const,
+  },
+  {
+    Icon: Wallet,
+    title: "Budget intelligence",
+    body: "Meals tuned to your real weekly spend, with budget-friendly and premium grocery swaps when you want them.",
+    tag: "soon" as const,
+  },
+];
 
 export const Route = createFileRoute("/today")({
   head: () => ({
@@ -165,6 +206,21 @@ function TodayPage() {
           ))}
         </div>
 
+        {/* Sleep check-in — placeholder for a future signal (wearables, manual) */}
+        <div className="mb-5 rounded-xl border border-dashed border-stone-warm bg-card/40 px-3 py-3 flex items-center gap-3">
+          <Moon className="size-4 text-ink/40" strokeWidth={1.75} />
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold text-ink/70">How did you sleep?</p>
+            <p className="text-[11px] text-ink/45 leading-snug">
+              Coming soon — meals will adapt to your recovery.
+            </p>
+          </div>
+          <span className="text-[9px] font-bold uppercase tracking-wider text-ink/40">
+            Soon
+          </span>
+        </div>
+
+
         <div className="flex items-center gap-2 bg-card/70 px-3 py-2 rounded-xl border border-stone-warm/70">
           <span className="text-xs text-ink/55 font-medium shrink-0">{t.today.useUp}</span>
           <input
@@ -221,6 +277,8 @@ function TodayPage() {
           </a>
         )}
       </div>
+
+      <ComingSoon items={COMING_SOON} />
     </AppShell>
   );
 }
