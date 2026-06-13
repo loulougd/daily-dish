@@ -1,3 +1,20 @@
+/**
+ * Profile + daily context storage.
+ *
+ * V1 persists to localStorage so the app works without an account.
+ * The shape of `UserProfile` and `DailyContext` is the same shape that will
+ * later sync to Supabase tables once Lovable Cloud is enabled:
+ *   - profiles            (1 row per user — UserProfile fields)
+ *   - daily_contexts      (1 row per user per day — DailyContext fields)
+ *   - meal_history        (logged meals: user_id, date, meal_type, recipe_id)
+ *   - disliked_meals      (user_id, recipe_id, reason)
+ *   - saved_recipes       (user_id, recipe_id, saved_at)
+ *   - household_members   (user_id, name, goal, restrictions, hated[])  [future]
+ *   - sleep_signals       (user_id, date, quality, source)               [future]
+ *
+ * Keep all reads/writes in this file so the swap to a Supabase-backed
+ * implementation is contained.
+ */
 import { useEffect, useState, useCallback } from "react";
 import type { DailyContext, UserProfile } from "./types";
 
