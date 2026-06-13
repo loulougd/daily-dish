@@ -381,7 +381,7 @@ function SegmentRow<T extends string>({
   return (
     <div className={label ? "mt-3" : ""}>
       {label && <Label>{label}</Label>}
-      <div className={`grid grid-cols-${options.length} gap-1.5 mt-1 bg-cream rounded-xl p-1`}>
+      <div className={`grid gap-1.5 mt-1 bg-cream rounded-xl p-1 ${options.length === 2 ? "grid-cols-2" : options.length === 3 ? "grid-cols-3" : "grid-cols-4"}`}>
         {options.map((o) => (
           <button
             key={o.id}
