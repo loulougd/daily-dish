@@ -206,6 +206,21 @@ function TodayPage() {
           ))}
         </div>
 
+        {/* Sleep check-in — placeholder for a future signal (wearables, manual) */}
+        <div className="mb-5 rounded-xl border border-dashed border-stone-warm bg-card/40 px-3 py-3 flex items-center gap-3">
+          <Moon className="size-4 text-ink/40" strokeWidth={1.75} />
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold text-ink/70">How did you sleep?</p>
+            <p className="text-[11px] text-ink/45 leading-snug">
+              Coming soon — meals will adapt to your recovery.
+            </p>
+          </div>
+          <span className="text-[9px] font-bold uppercase tracking-wider text-ink/40">
+            Soon
+          </span>
+        </div>
+
+
         <div className="flex items-center gap-2 bg-card/70 px-3 py-2 rounded-xl border border-stone-warm/70">
           <span className="text-xs text-ink/55 font-medium shrink-0">{t.today.useUp}</span>
           <input
