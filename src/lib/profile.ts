@@ -93,6 +93,7 @@ export const defaultContext: DailyContext = {
   timeToday: "t20",
   useUp: [],
   dateISO: todayISO(),
+  theme: "",
 };
 
 export function useDailyContext(fallbackTime: DailyContext["timeToday"] = "t20") {

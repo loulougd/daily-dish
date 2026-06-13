@@ -1,64 +1,106 @@
 import type { Weather } from "./types";
 
-/**
- * Weather provider seam.
- *
- * V1 ships with a deterministic mock so the Today dashboard feels stable
- * across reloads. To plug in a real provider (OpenWeather, Open-Meteo, etc.)
- * later, implement the `WeatherProvider` interface and swap the
- * `activeProvider` export — no callsite changes required.
- */
-export interface WeatherProvider {
-  getWeather(city: string, dateISO?: string): Promise<Weather> | Weather;
-}
+const CACHE_KEY = "forkcast_weather";
+const CACHE_TTL = 2 * 60 * 60 * 1000; // 2 hours
 
-export const mockWeatherProvider: WeatherProvider = {
-  getWeather(city, dateISO = new Date().toISOString().slice(0, 10)) {
-    const seed = hash(`${city.toLowerCase()}::${dateISO}`);
-    const base = seedTempForCity(city);
-    const variance = (seed % 9) - 4;
-    const tempC = Math.round(base + variance);
-
-    const conditions = ["Clear", "Sunny", "Partly cloudy", "Cloudy", "Overcast", "Light rain"];
-    const condition = conditions[seed % conditions.length];
-
-    let feel: Weather["feel"];
-    if (tempC <= 6) feel = "cold";
-    else if (tempC <= 14) feel = "cool";
-    else if (tempC <= 22) feel = "mild";
-    else if (tempC <= 28) feel = "warm";
-    else feel = "hot";
-
-    return { tempC, condition, feel };
-  },
+const WMO_MAP: Record<number, string> = {
+  0: "Sunny", 1: "Mostly clear", 2: "Partly cloudy", 3: "Cloudy",
+  45: "Foggy", 48: "Foggy", 51: "Light drizzle", 53: "Drizzle",
+  55: "Heavy drizzle", 56: "Freezing drizzle", 57: "Freezing drizzle",
+  61: "Light rain", 63: "Rain", 65: "Heavy rain",
+  66: "Freezing rain", 67: "Freezing rain",
+  71: "Light snow", 73: "Snow", 75: "Heavy snow", 77: "Snow grains",
+  80: "Showers", 81: "Heavy showers", 82: "Violent showers",
+  85: "Snow showers", 86: "Heavy snow showers",
+  95: "Thunderstorm", 96: "Thunderstorm", 99: "Thunderstorm",
 };
 
-// TODO: replace with `openWeatherProvider` once an API key is wired through
-// Lovable Cloud secrets (OPENWEATHER_API_KEY) and a server function exposes it.
-export const activeProvider: WeatherProvider = mockWeatherProvider;
-
-export function getWeather(city: string, dateISO?: string): Weather {
-  // The mock provider is sync; real providers will return a Promise and the
-  // Today route will move this call into a loader / server function.
-  return activeProvider.getWeather(city, dateISO) as Weather;
+function tempToFeel(t: number): Weather["feel"] {
+  if (t < 5) return "cold";
+  if (t < 12) return "cool";
+  if (t < 20) return "mild";
+  if (t < 28) return "warm";
+  return "hot";
 }
 
-function seedTempForCity(city: string) {
-  const c = city.toLowerCase();
-  if (/oslo|stockholm|helsinki|reykjavik/.test(c)) return 4;
-  if (/london|dublin|amsterdam|berlin|paris|brussels/.test(c)) return 12;
-  if (/lisbon|madrid|barcelona|rome|athens/.test(c)) return 19;
-  if (/dubai|cairo|bangkok|singapore|mumbai/.test(c)) return 30;
-  if (/new york|chicago|toronto|montreal/.test(c)) return 14;
-  if (/los angeles|san francisco|miami|austin/.test(c)) return 22;
-  return 16;
+interface CachedWeather {
+  data: Weather;
+  ts: number;
+  city: string;
 }
 
-function hash(s: string) {
-  let h = 2166136261;
-  for (let i = 0; i < s.length; i++) {
-    h ^= s.charCodeAt(i);
-    h = Math.imul(h, 16777619);
+function readCache(city: string): Weather | null {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (!raw) return null;
+    const cached: CachedWeather = JSON.parse(raw);
+    if (cached.city !== city.toLowerCase()) return null;
+    if (Date.now() - cached.ts > CACHE_TTL) return null;
+    return cached.data;
+  } catch { return null; }
+}
+
+function writeCache(city: string, data: Weather) {
+  try {
+    const entry: CachedWeather = { data, ts: Date.now(), city: city.toLowerCase() };
+    localStorage.setItem(CACHE_KEY, JSON.stringify(entry));
+  } catch {}
+}
+
+async function geocodeCity(city: string): Promise<{ lat: number; lon: number } | null> {
+  try {
+    const res = await fetch(
+      `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=en`
+    );
+    const data = await res.json();
+    if (data.results?.[0]) {
+      return { lat: data.results[0].latitude, lon: data.results[0].longitude };
+    }
+    return null;
+  } catch { return null; }
+}
+
+export async function fetchWeather(city: string): Promise<Weather> {
+  const cached = readCache(city);
+  if (cached) return cached;
+
+  const coords = await geocodeCity(city);
+  if (!coords) return mockWeather(city);
+
+  try {
+    const res = await fetch(
+      `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&current=temperature_2m,weather_code&timezone=auto`
+    );
+    const data = await res.json();
+    const tempC = Math.round(data.current.temperature_2m);
+    const code = data.current.weather_code as number;
+    const condition = WMO_MAP[code] ?? "Cloudy";
+    const feel = tempToFeel(tempC);
+    const weather: Weather = { tempC, condition, feel };
+    writeCache(city, weather);
+    return weather;
+  } catch {
+    return mockWeather(city);
   }
-  return Math.abs(h);
+}
+
+// Synchronous getter for planner — reads from cache or returns mock
+export function getWeather(city: string, _dateISO?: string): Weather {
+  const cached = readCache(city);
+  if (cached) return cached;
+  return mockWeather(city);
+}
+
+function mockWeather(city: string): Weather {
+  const c = city.toLowerCase();
+  let base = 16;
+  if (/london|dublin|amsterdam|berlin|paris|brussels/.test(c)) base = 14;
+  else if (/lisbon|madrid|barcelona|rome|athens/.test(c)) base = 22;
+  else if (/dubai|cairo|bangkok|singapore|mumbai/.test(c)) base = 31;
+  else if (/oslo|stockholm|helsinki/.test(c)) base = 8;
+  else if (/new york|chicago|toronto/.test(c)) base = 17;
+  const month = new Date().getMonth();
+  const seasonal = month >= 4 && month <= 8 ? 5 : month >= 10 || month <= 1 ? -4 : 0;
+  const tempC = base + seasonal;
+  return { tempC, condition: "Partly cloudy", feel: tempToFeel(tempC) };
 }

@@ -46,6 +46,7 @@ export interface DailyContext {
   timeToday: TimeBucket;
   useUp: string[];
   dateISO: string;
+  theme: string; // cuisine theme: "" = no theme, "italian", "mexican", etc.
 }
 
 export interface Recipe {

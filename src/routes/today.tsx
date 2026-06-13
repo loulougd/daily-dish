@@ -2,6 +2,7 @@ import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useDailyContext, useProfile, useSwaps } from "@/lib/profile";
 import { planDay, swapMeal, snapshotContext } from "@/lib/meal-planner";
+import { fetchWeather } from "@/lib/weather";
 import { t } from "@/lib/strings";
 import { phaseLabel } from "@/lib/cycle";
 import { AppShell } from "@/components/AppShell";
@@ -10,6 +11,7 @@ import { MealCard } from "@/components/MealCard";
 import { SnackCard } from "@/components/SnackCard";
 import { ComingSoon } from "@/components/ComingSoon";
 import { DailyOverview } from "@/components/DailyOverview";
+import { ThemeSelector } from "@/components/ThemeSelector";
 import { Moon, CalendarClock, Users, Recycle, Camera, Wallet } from "lucide-react";
 import type { DayPlan } from "@/lib/meal-planner";
 import type { EnergyLevel, TimeBucket } from "@/lib/types";
@@ -42,11 +44,17 @@ function TodayPage() {
   const [useUpDraft, setUseUpDraft] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
 
+  // Fetch real weather on mount (caches for 2h)
+  useEffect(() => {
+    if (!profile.city) return;
+    fetchWeather(profile.city).catch(() => {});
+  }, [profile.city]);
+
   useEffect(() => {
     if (!hydrated || !ctxHydrated) return;
     setPlan(planDay(profile, context));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hydrated, ctxHydrated, context.energy, context.timeToday, context.useUp.join(","), profile.onboarded]);
+  }, [hydrated, ctxHydrated, context.energy, context.timeToday, context.theme, context.useUp.join(","), profile.onboarded]);
 
   const greeting = useMemo(() => {
     const h = new Date().getHours();
@@ -136,6 +144,11 @@ function TodayPage() {
         <ContextChip label={t.today.contextLabels.time} value={timeBucketLabel(context.timeToday)} />
         <ContextChip label={t.today.contextLabels.energy} value={energyLabel(context.energy)} />
       </div>
+
+      <ThemeSelector
+        value={context.theme}
+        onChange={(theme) => updateCtx({ theme })}
+      />
 
       <section className="mx-6 mb-6 bg-stone-warm/40 rounded-2xl p-5">
         <p className="eyebrow text-ink/55 mb-3">{t.today.checkin}</p>

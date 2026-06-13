@@ -140,6 +140,11 @@ function scoreRecipe(
   if (snap.cycle === "luteal" && r.carbDensity === "high") score += 1;
   if (snap.cycle === "follicular" && r.style === "clean") score += 1;
 
+  // Theme day cuisine bonus
+  if (ctx.theme && ctx.theme.length > 0) {
+    if (r.tags.includes(ctx.theme)) score += 10;
+  }
+
   return score;
 }
 
@@ -298,6 +303,7 @@ export function planWeek(profile: UserProfile, start = new Date()): WeekDayPlan[
       timeToday: profile.time,
       useUp: [],
       dateISO: d.toISOString().slice(0, 10),
+      theme: "",
     };
     const used = new Set<string>();
     const candidates = (m: MealType) =>
