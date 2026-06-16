@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Calendar, Camera, Home, Settings as SettingsIcon, ShoppingBasket } from "lucide-react";
+import { BookOpen, Calendar, Camera, Home, Settings as SettingsIcon, ShoppingBasket } from "lucide-react";
 import type { ReactNode } from "react";
 import { t } from "@/lib/strings";
 
@@ -8,6 +8,7 @@ const NAV = [
   { to: "/week", label: t.nav.week, Icon: Calendar },
   { to: "/snap", label: t.nav.snap, Icon: Camera },
   { to: "/grocery", label: t.nav.grocery, Icon: ShoppingBasket },
+  { to: "/my-recipes", label: t.nav.myRecipes, Icon: BookOpen },
   { to: "/settings", label: t.nav.settings, Icon: SettingsIcon },
 ] as const;
 
@@ -24,7 +25,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               <Link
                 key={to}
                 to={to}
-                className="flex flex-col items-center gap-1 px-3 py-1 group"
+                className="flex flex-col items-center gap-1 px-2 py-1 group"
               >
                 <Icon
                   className={`size-5 transition-colors ${
