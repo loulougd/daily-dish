@@ -2,6 +2,7 @@ import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useDailyContext, useProfile, useSwaps, useMealFeedback, useHydration, useCookingStats } from "@/lib/profile";
 import { planDay, swapMeal, snapshotContext } from "@/lib/meal-planner";
+import { useExternalRecipeCatalog } from "@/lib/external-recipes";
 import { fetchWeather } from "@/lib/weather";
 import { t } from "@/lib/strings";
 import { phaseLabel } from "@/lib/cycle";
@@ -43,6 +44,7 @@ export const Route = createFileRoute("/today")({
 function TodayPage() {
   const { profile, hydrated } = useProfile();
   const { context, update: updateCtx, hydrated: ctxHydrated } = useDailyContext(profile.time);
+  const externalCatalog = useExternalRecipeCatalog(profile);
   const swaps = useSwaps();
   const { feedback, vote: voteFeedback, getVote } = useMealFeedback();
   const hydration = useHydration();
@@ -58,10 +60,10 @@ function TodayPage() {
   }, [profile.city]);
 
   useEffect(() => {
-    if (!hydrated || !ctxHydrated) return;
+    if (!hydrated || !ctxHydrated || !externalCatalog.hydrated) return;
     setPlan(planDay(profile, context));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hydrated, ctxHydrated, context.energy, context.sleepQuality, context.timeToday, context.theme, context.useUp.join(","), (context.symptoms ?? []).join(","), profile.onboarded, feedback.length]);
+  }, [hydrated, ctxHydrated, externalCatalog.hydrated, externalCatalog.recipes.length, context.energy, context.sleepQuality, context.timeToday, context.theme, context.useUp.join(","), (context.symptoms ?? []).join(","), profile.onboarded, feedback.length]);
 
   const greeting = useMemo(() => {
     const h = new Date().getHours();

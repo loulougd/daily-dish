@@ -13,6 +13,7 @@ import { getCyclePhase, phaseHint } from "./cycle";
 import { countSeasonalMatches } from "./seasonal";
 import { readFeedback } from "./profile";
 import { readCustomRecipes } from "./custom-recipes";
+import { readExternalRecipes } from "./external-recipes";
 
 export interface DayContextSnapshot {
   weather: Weather;
@@ -28,7 +29,7 @@ export function snapshotContext(profile: UserProfile, date = new Date()): DayCon
 }
 
 function allRecipes(): Recipe[] {
-  return [...RECIPES, ...readCustomRecipes()];
+  return [...RECIPES, ...readCustomRecipes(), ...readExternalRecipes()];
 }
 
 // ─── Filters ────────────────────────────────────────────────────────────────
