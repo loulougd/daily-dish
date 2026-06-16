@@ -462,17 +462,19 @@ function SelectField({
   return (
     <div>
       <Label>{label}</Label>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full mt-1 px-3 py-2.5 rounded-xl bg-cream border border-stone-warm text-sm outline-none"
-      >
-        {options.map((o) => (
-          <option key={o.id} value={o.id}>
-            {o.label}
-          </option>
-        ))}
-      </select>
+      <div className="mt-1 flex items-center bg-cream border border-stone-warm rounded-xl px-3 py-2.5">
+        <select
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="bg-transparent text-sm font-semibold outline-none w-full min-w-0 appearance-none"
+        >
+          {options.map((o) => (
+            <option key={o.id} value={o.id}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+      </div>
     </div>
   );
 }
