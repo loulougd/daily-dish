@@ -4,6 +4,7 @@ import { Check, ChevronDown, ChevronRight, ClipboardCopy, Trash2 } from "lucide-
 import { AppShell } from "@/components/AppShell";
 import { planWeek } from "@/lib/meal-planner";
 import { useProfile } from "@/lib/profile";
+import { useExternalRecipeCatalog } from "@/lib/external-recipes";
 import { t } from "@/lib/strings";
 import type { GroceryCategory } from "@/lib/types";
 
@@ -30,11 +31,12 @@ interface GroceryItem {
 
 function GroceryPage() {
   const { profile, hydrated } = useProfile();
+  const externalCatalog = useExternalRecipeCatalog(profile);
   const [checked, setChecked] = useState<Set<string>>(new Set());
   const [collapsed, setCollapsed] = useState<Set<GroceryCategory>>(new Set());
 
   const grouped = useMemo(() => {
-    if (!hydrated) return {} as Record<GroceryCategory, GroceryItem[]>;
+    if (!hydrated || !externalCatalog.hydrated) return {} as Record<GroceryCategory, GroceryItem[]>;
     const week = planWeek(profile);
     const acc: Record<GroceryCategory, Map<string, { qty: string; uses: number }>> = {
       produce: new Map(), protein: new Map(), dairy: new Map(),
@@ -60,7 +62,7 @@ function GroceryPage() {
         .map(([name, v]) => ({ name, qty: v.qty, uses: v.uses }));
     }
     return out;
-  }, [hydrated, profile]);
+  }, [hydrated, externalCatalog.hydrated, externalCatalog.recipes.length, profile]);
 
   const totalItems = useMemo(
     () => ORDER.reduce((sum, cat) => sum + (grouped[cat]?.length ?? 0), 0),
