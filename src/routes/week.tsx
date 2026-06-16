@@ -4,6 +4,7 @@ import { CalendarDays, Cloud, Dumbbell, Sparkles, ChevronDown, Clock } from "luc
 import { AppShell } from "@/components/AppShell";
 import { planWeek } from "@/lib/meal-planner";
 import { useProfile } from "@/lib/profile";
+import { useExternalRecipeCatalog } from "@/lib/external-recipes";
 import { t } from "@/lib/strings";
 import { phaseLabel } from "@/lib/cycle";
 import { photoUrl } from "@/lib/recipe-photos";
@@ -21,7 +22,11 @@ export const Route = createFileRoute("/week")({
 
 function WeekPage() {
   const { profile, hydrated } = useProfile();
-  const week = useMemo(() => (hydrated ? planWeek(profile) : []), [hydrated, profile]);
+  const externalCatalog = useExternalRecipeCatalog(profile);
+  const week = useMemo(
+    () => (hydrated && externalCatalog.hydrated ? planWeek(profile) : []),
+    [hydrated, externalCatalog.hydrated, externalCatalog.recipes.length, profile],
+  );
   const [expanded, setExpanded] = useState<number | null>(0); // first day open by default
 
   const toggle = (idx: number) => {
