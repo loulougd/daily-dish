@@ -8,6 +8,7 @@ export const t = {
     week: "Week",
     snap: "Snap",
     grocery: "Grocery",
+    myRecipes: "Mine",
     settings: "Settings",
   },
 

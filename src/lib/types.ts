@@ -84,6 +84,13 @@ export interface Recipe {
   style: "clean" | "balanced" | "comfort";
 }
 
+export interface CustomRecipe extends Recipe {
+  source: "custom";
+  weeklyStaple: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export type GroceryCategory =
   | "produce"
   | "protein"
