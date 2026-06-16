@@ -67,8 +67,8 @@ function SettingsPage() {
       {/* Stats */}
       <Section title={t.settings.sectionStats} note={t.settings.statsNote}>
         {/* Row 1: Age + Sex */}
-        <div className="flex gap-2 mb-2">
-          <div className="flex-1">
+        <div style={{ display: "flex", gap: "8px", marginBottom: "8px", alignItems: "flex-start" }}>
+          <div style={{ flex: 1 }}>
             <Label>{t.onboarding.stats.age}</Label>
             <div className="mt-1 flex items-center gap-1 bg-cream border border-stone-warm rounded-xl px-3 py-2.5">
               <input
@@ -83,7 +83,7 @@ function SettingsPage() {
               <span className="text-xs text-ink/45">yrs</span>
             </div>
           </div>
-          <div className="flex-1">
+          <div style={{ flex: 1 }}>
             <Label>{t.onboarding.stats.sex}</Label>
             <div className="mt-1 flex items-center bg-cream border border-stone-warm rounded-xl px-3 py-2.5">
               <select
@@ -101,8 +101,8 @@ function SettingsPage() {
           </div>
         </div>
         {/* Row 2: Height + Weight */}
-        <div className="flex gap-2 mb-2">
-          <div className="flex-1">
+        <div style={{ display: "flex", gap: "8px", marginBottom: "8px", alignItems: "flex-start" }}>
+          <div style={{ flex: 1 }}>
             <Label>{t.onboarding.stats.height}</Label>
             <div className="mt-1 flex items-center gap-1 bg-cream border border-stone-warm rounded-xl px-3 py-2.5">
               <input
@@ -117,7 +117,7 @@ function SettingsPage() {
               <span className="text-xs text-ink/45">cm</span>
             </div>
           </div>
-          <div className="flex-1">
+          <div style={{ flex: 1 }}>
             <Label>{t.onboarding.stats.weight}</Label>
             <div className="mt-1 flex items-center gap-1 bg-cream border border-stone-warm rounded-xl px-3 py-2.5">
               <input
