@@ -1,6 +1,6 @@
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { useDailyContext, useProfile, useSwaps, useMealFeedback, useHydration } from "@/lib/profile";
+import { useDailyContext, useProfile, useSwaps, useMealFeedback, useHydration, useCookingStats } from "@/lib/profile";
 import { planDay, swapMeal, snapshotContext } from "@/lib/meal-planner";
 import { fetchWeather } from "@/lib/weather";
 import { t } from "@/lib/strings";
@@ -14,9 +14,12 @@ import { DailyOverview } from "@/components/DailyOverview";
 import { ThemeSelector } from "@/components/ThemeSelector";
 import { SleepCheckin } from "@/components/SleepCheckin";
 import { HydrationTracker, calcHydrationTarget } from "@/components/HydrationTracker";
+import { SupplementSuggestion } from "@/components/SupplementSuggestion";
+import { CookingStatsCard } from "@/components/CookingStats";
+import { ShareButton } from "@/components/ShareCard";
 import { CalendarClock, Users, Recycle, Camera, Wallet } from "lucide-react";
 import type { DayPlan } from "@/lib/meal-planner";
-import type { EnergyLevel, SleepQuality, TimeBucket } from "@/lib/types";
+import type { EnergyLevel, SleepQuality, TimeBucket, CycleSymptom } from "@/lib/types";
 import { calcDailyTargets } from "@/lib/nutrition";
 
 const COMING_SOON = [
@@ -43,6 +46,7 @@ function TodayPage() {
   const swaps = useSwaps();
   const { feedback, vote: voteFeedback, getVote } = useMealFeedback();
   const hydration = useHydration();
+  const { stats: cookingStats, markCooked } = useCookingStats();
   const [plan, setPlan] = useState<DayPlan | null>(null);
   const [useUpDraft, setUseUpDraft] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
@@ -57,7 +61,7 @@ function TodayPage() {
     if (!hydrated || !ctxHydrated) return;
     setPlan(planDay(profile, context));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hydrated, ctxHydrated, context.energy, context.sleepQuality, context.timeToday, context.theme, context.useUp.join(","), profile.onboarded, feedback.length]);
+  }, [hydrated, ctxHydrated, context.energy, context.sleepQuality, context.timeToday, context.theme, context.useUp.join(","), (context.symptoms ?? []).join(","), profile.onboarded, feedback.length]);
 
   const greeting = useMemo(() => {
     const h = new Date().getHours();
@@ -194,6 +198,40 @@ function TodayPage() {
           onChange={(sq) => updateCtx({ sleepQuality: sq })}
         />
 
+        {/* Cycle symptoms — only when cycle tracking enabled */}
+        {profile.cycle.enabled && snap.cycle && (
+          <div className="mb-5">
+            <p className="text-xs font-semibold text-ink/70 mb-2.5">How are you feeling today?</p>
+            <div className="flex flex-wrap gap-2">
+              {(["cramps", "bloating", "fatigue", "cravings", "headache"] as CycleSymptom[]).map((s) => {
+                const active = (context.symptoms ?? []).includes(s);
+                return (
+                  <button
+                    key={s}
+                    onClick={() => {
+                      const current = context.symptoms ?? [];
+                      const next = active ? current.filter((x) => x !== s) : [...current, s];
+                      updateCtx({ symptoms: next });
+                    }}
+                    className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors capitalize ${
+                      active
+                        ? "bg-terracotta text-cream border-terracotta"
+                        : "bg-card text-ink/60 border-stone-warm"
+                    }`}
+                  >
+                    {s === "cramps" ? "🩹 Cramps" : s === "bloating" ? "🫧 Bloating" : s === "fatigue" ? "😮‍💨 Fatigue" : s === "cravings" ? "🍫 Cravings" : "🤕 Headache"}
+                  </button>
+                );
+              })}
+            </div>
+            {(context.symptoms ?? []).length > 0 && (
+              <p className="text-[11px] text-ink/45 mt-2 italic">
+                Meals adjusted — lighter, easier, or more comforting.
+              </p>
+            )}
+          </div>
+        )}
+
         <div className="flex items-center gap-2 bg-card/70 px-3 py-2 rounded-xl border border-stone-warm/70">
           <span className="text-xs text-ink/55 font-medium shrink-0">{t.today.useUp}</span>
           <input
@@ -236,6 +274,14 @@ function TodayPage() {
         onRemove={hydration.remove}
       />
 
+      <SupplementSuggestion
+        training={snap.training}
+        cycle={snap.cycle}
+        sleepQuality={context.sleepQuality}
+        symptoms={context.symptoms ?? []}
+        isPremium={false}
+      />
+
       <section className="px-6 space-y-4">
         <MealCard
           recipe={plan.breakfast}
@@ -245,6 +291,8 @@ function TodayPage() {
           showCalories={profile.guidance === "calories"}
           feedbackVote={getVote(plan.breakfast.id)}
           onFeedback={(v) => voteFeedback(plan.breakfast.id, v)}
+          onCooked={() => markCooked(plan.breakfast.id)}
+          shareSlot={<ShareButton recipe={plan.breakfast} weather={snap.weather} city={profile.city} why={plan.whys.breakfast} />}
         />
         <MealCard
           recipe={plan.lunch}
@@ -254,6 +302,8 @@ function TodayPage() {
           showCalories={profile.guidance === "calories"}
           feedbackVote={getVote(plan.lunch.id)}
           onFeedback={(v) => voteFeedback(plan.lunch.id, v)}
+          onCooked={() => markCooked(plan.lunch.id)}
+          shareSlot={<ShareButton recipe={plan.lunch} weather={snap.weather} city={profile.city} why={plan.whys.lunch} />}
         />
         {showSnack && (
           <SnackCard
@@ -274,6 +324,8 @@ function TodayPage() {
           showCalories={profile.guidance === "calories"}
           feedbackVote={getVote(plan.dinner.id)}
           onFeedback={(v) => voteFeedback(plan.dinner.id, v)}
+          onCooked={() => markCooked(plan.dinner.id)}
+          shareSlot={<ShareButton recipe={plan.dinner} weather={snap.weather} city={profile.city} why={plan.whys.dinner} />}
         />
       </section>
 
@@ -292,6 +344,8 @@ function TodayPage() {
       {profile.guidance === "calories" && (
         <DailyOverview consumed={consumed} targets={targets} />
       )}
+
+      <CookingStatsCard stats={cookingStats} />
 
       <ComingSoon items={COMING_SOON} />
     </AppShell>

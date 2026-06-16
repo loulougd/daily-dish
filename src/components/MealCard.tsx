@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { RefreshCw, Clock, Flame, Wallet, Sparkles, ThumbsUp, ThumbsDown } from "lucide-react";
+import { RefreshCw, Clock, Flame, Wallet, Sparkles, ThumbsUp, ThumbsDown, CheckCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { Recipe } from "@/lib/types";
 import { t } from "@/lib/strings";
@@ -22,9 +22,11 @@ interface Props {
   badge?: string;
   feedbackVote?: "up" | "down" | null;
   onFeedback?: (vote: "up" | "down") => void;
+  onCooked?: () => void;
+  shareSlot?: React.ReactNode;
 }
 
-export function MealCard({ recipe, why, onSwap, canSwap, showCalories, badge, feedbackVote, onFeedback }: Props) {
+export function MealCard({ recipe, why, onSwap, canSwap, showCalories, badge, feedbackVote, onFeedback, onCooked, shareSlot }: Props) {
   // Fade-out/in animation when the recipe changes via swap
   const [fading, setFading] = useState(false);
   useEffect(() => {
@@ -118,7 +120,7 @@ export function MealCard({ recipe, why, onSwap, canSwap, showCalories, badge, fe
           </div>
         )}
 
-        <div className="grid grid-cols-[1fr_auto] gap-2 mt-3">
+        <div className="grid grid-cols-[1fr_auto_auto_auto] gap-2 mt-3">
           <Link
             to="/recipe/$id"
             params={{ id: recipe.id }}
@@ -126,6 +128,17 @@ export function MealCard({ recipe, why, onSwap, canSwap, showCalories, badge, fe
           >
             {t.today.viewRecipe}
           </Link>
+          {onCooked && (
+            <button
+              type="button"
+              onClick={onCooked}
+              className="size-10 rounded-xl border border-green-200 bg-green-50 text-green-600 inline-flex items-center justify-center active:scale-[0.95] transition-transform"
+              aria-label="Mark as cooked"
+            >
+              <CheckCircle className="size-4" strokeWidth={2} />
+            </button>
+          )}
+          {shareSlot}
           <button
             type="button"
             onClick={onSwap}

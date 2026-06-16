@@ -185,8 +185,20 @@ function SettingsPage() {
           presets={t.onboarding.diet.options}
           onChange={(diet) => update({ diet })}
         />
+        <div className="mt-4 p-3 bg-red-50/60 border border-red-200/40 rounded-xl">
+          <ChipsField
+            label="⚠️ Allergies (strict — never served)"
+            value={profile.allergies ?? []}
+            onChange={(allergies) => update({ allergies })}
+            allowAdd
+            placeholder="e.g. peanuts, shellfish"
+          />
+          <p className="text-[10px] text-red-500/70 mt-1">
+            These ingredients are strictly excluded from all suggestions.
+          </p>
+        </div>
         <ChipsField
-          label="Foods you hate"
+          label="Foods you dislike (soft preference)"
           value={profile.hated}
           onChange={(hated) => update({ hated })}
           allowAdd

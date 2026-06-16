@@ -26,7 +26,8 @@ export interface UserProfile {
   training: Record<number, Intensity>;
   diet: string[];
   dietOther: string;
-  hated: string[];
+  allergies: string[]; // strict exclusion — never serve these ingredients
+  hated: string[];     // soft preference — avoid but not dangerous
   style: number;
   budget: Budget;
   household: number;
@@ -42,13 +43,16 @@ export interface UserProfile {
   onboarded: boolean;
 }
 
+export type CycleSymptom = "cramps" | "bloating" | "fatigue" | "cravings" | "headache";
+
 export interface DailyContext {
   energy: EnergyLevel;
   sleepQuality: SleepQuality;
   timeToday: TimeBucket;
   useUp: string[];
   dateISO: string;
-  theme: string; // cuisine theme: "" = no theme, "italian", "mexican", etc.
+  theme: string;
+  symptoms: CycleSymptom[];
 }
 
 // Meal feedback — stored separately in localStorage

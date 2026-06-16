@@ -32,6 +32,7 @@ export const defaultProfile: UserProfile = {
   training: { 1: "moderate", 3: "moderate", 5: "intense" },
   diet: [],
   dietOther: "",
+  allergies: [],
   hated: [],
   style: 50,
   budget: "medium",
@@ -97,6 +98,7 @@ export const defaultContext: DailyContext = {
   useUp: [],
   dateISO: todayISO(),
   theme: "",
+  symptoms: [],
 };
 
 export function useDailyContext(fallbackTime: DailyContext["timeToday"] = "t20") {
@@ -238,4 +240,57 @@ export function useHydration() {
   }, []);
 
   return { glasses, add, remove };
+}
+
+// ─── Cooking Stats (Gamification) ───────────────────────────────────────────
+const STATS_KEY = "forkcast.stats.v1";
+
+export interface CookingStats {
+  recipesCooked: string[]; // unique recipe IDs
+  totalCooked: number;
+  streak: number; // consecutive days
+  lastCookDate: string;
+}
+
+const defaultStats: CookingStats = {
+  recipesCooked: [],
+  totalCooked: 0,
+  streak: 0,
+  lastCookDate: "",
+};
+
+export function useCookingStats() {
+  const [stats, setStats] = useState<CookingStats>(defaultStats);
+
+  useEffect(() => {
+    setStats(readJSON(STATS_KEY, defaultStats));
+  }, []);
+
+  const markCooked = useCallback((recipeId: string) => {
+    setStats((prev) => {
+      const today = todayISO();
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayISO = yesterday.toISOString().slice(0, 10);
+
+      let streak = prev.streak;
+      if (prev.lastCookDate === yesterdayISO) streak += 1;
+      else if (prev.lastCookDate !== today) streak = 1;
+
+      const recipesCooked = prev.recipesCooked.includes(recipeId)
+        ? prev.recipesCooked
+        : [...prev.recipesCooked, recipeId];
+
+      const next: CookingStats = {
+        recipesCooked,
+        totalCooked: prev.totalCooked + 1,
+        streak,
+        lastCookDate: today,
+      };
+      writeJSON(STATS_KEY, next);
+      return next;
+    });
+  }, []);
+
+  return { stats, markCooked };
 }

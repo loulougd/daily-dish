@@ -37,6 +37,7 @@ const STEPS = [
   "effort",
   "training",
   "diet",
+  "allergies",
   "hated",
   "style",
   "budget",
@@ -50,18 +51,25 @@ function Onboarding() {
   const navigate = useNavigate();
   const { profile, update } = useProfile();
   const [stepIdx, setStepIdx] = useState(0);
+  const [animDir, setAnimDir] = useState<"forward" | "back">("forward");
+  const [showConfetti, setShowConfetti] = useState(false);
   const step: Step = STEPS[stepIdx];
 
   const progress = (stepIdx / (STEPS.length - 1)) * 100;
   const next = () => {
     if (stepIdx === STEPS.length - 1) {
       update({ onboarded: true });
-      navigate({ to: "/today" });
+      setShowConfetti(true);
+      setTimeout(() => navigate({ to: "/today" }), 1500);
     } else {
+      setAnimDir("forward");
       setStepIdx((i) => Math.min(STEPS.length - 1, i + 1));
     }
   };
-  const back = () => setStepIdx((i) => Math.max(0, i - 1));
+  const back = () => {
+    setAnimDir("back");
+    setStepIdx((i) => Math.max(0, i - 1));
+  };
 
   return (
     <div className="min-h-screen bg-cream text-ink flex flex-col">
@@ -90,7 +98,55 @@ function Onboarding() {
         </div>
       </header>
 
-      <div className="flex-1 px-6 pb-32">
+      {/* Confetti overlay */}
+      {showConfetti && (
+        <div className="fixed inset-0 z-50 pointer-events-none flex items-center justify-center">
+          <div className="text-center">
+            <div className="text-6xl mb-4 animate-bounce">🎉</div>
+            <p className="font-serif text-3xl text-ink">You're all set!</p>
+            <p className="text-ink/60 text-sm mt-2">Preparing your first day...</p>
+          </div>
+          {/* CSS confetti particles */}
+          {Array.from({ length: 30 }, (_, i) => (
+            <span
+              key={i}
+              className="absolute text-xl"
+              style={{
+                left: `${Math.random() * 100}%`,
+                top: `-5%`,
+                animation: `confettiFall ${1.5 + Math.random() * 2}s ease-out ${Math.random() * 0.5}s forwards`,
+                transform: `rotate(${Math.random() * 360}deg)`,
+              }}
+            >
+              {["🎊", "✨", "🍽️", "🥦", "🎉", "💚"][i % 6]}
+            </span>
+          ))}
+          <style>{`
+            @keyframes confettiFall {
+              0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+              100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+            }
+          `}</style>
+        </div>
+      )}
+
+      <div
+        key={stepIdx}
+        className="flex-1 px-6 pb-32"
+        style={{
+          animation: step === "welcome" ? "none" : `${animDir === "forward" ? "slideInRight" : "slideInLeft"} 0.3s ease-out`,
+        }}
+      >
+        <style>{`
+          @keyframes slideInRight {
+            from { opacity: 0; transform: translateX(40px); }
+            to { opacity: 1; transform: translateX(0); }
+          }
+          @keyframes slideInLeft {
+            from { opacity: 0; transform: translateX(-40px); }
+            to { opacity: 1; transform: translateX(0); }
+          }
+        `}</style>
         {step === "welcome" && <WelcomeStep onStart={next} />}
         {step === "goal" && (
           <SingleChoiceStep
@@ -148,6 +204,15 @@ function Onboarding() {
             other={profile.dietOther}
             onSelected={(diet) => update({ diet })}
             onOther={(dietOther) => update({ dietOther })}
+          />
+        )}
+        {step === "allergies" && (
+          <ChipsStep
+            title="Any allergies?"
+            sub="These are strictly excluded — we'll never suggest a recipe containing these. This is separate from foods you just don't like."
+            placeholder="e.g. peanuts, shellfish, gluten"
+            value={profile.allergies ?? []}
+            onChange={(allergies) => update({ allergies })}
           />
         )}
         {step === "hated" && (

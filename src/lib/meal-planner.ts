@@ -67,6 +67,17 @@ function passesHated(r: Recipe, profile: UserProfile): boolean {
   return true;
 }
 
+/** Strict allergen filter — these are safety-critical, never override. */
+function passesAllergies(r: Recipe, profile: UserProfile): boolean {
+  const allergies = (profile.allergies ?? []).map((a) => a.toLowerCase().trim()).filter(Boolean);
+  for (const a of allergies) {
+    if (r.contains.some((c) => c.toLowerCase().includes(a))) return false;
+    if (r.ingredients.some((i) => i.name.toLowerCase().includes(a))) return false;
+    if (r.tags.some((t) => t.toLowerCase().includes(a))) return false;
+  }
+  return true;
+}
+
 // ─── Scoring ────────────────────────────────────────────────────────────────
 function timeLimitMinutes(t: DailyContext["timeToday"]): number {
   return t === "t10" ? 12 : t === "t20" ? 22 : t === "t45" ? 50 : 120;
@@ -169,6 +180,28 @@ function scoreRecipe(
     score += entry.vote === "up" ? 3 : -6;
   }
 
+  // Cycle symptoms scoring
+  const symp = ctx.symptoms ?? [];
+  if (symp.includes("cramps")) {
+    if (r.warmth === "warm") score += 3; // warm comfort foods
+    if (r.effort === "nobrain") score += 2;
+  }
+  if (symp.includes("bloating")) {
+    if (r.carbDensity === "low") score += 3; // lighter meals
+    if (r.carbDensity === "high") score -= 2;
+  }
+  if (symp.includes("fatigue")) {
+    if (r.effort === "nobrain") score += 4;
+    if (r.effort === "proper") score -= 4;
+  }
+  if (symp.includes("cravings")) {
+    if (r.style === "comfort") score += 3;
+    if (r.protein >= 25) score += 2; // protein helps manage cravings
+  }
+  if (symp.includes("headache")) {
+    if (r.effort === "nobrain") score += 3;
+  }
+
   return score;
 }
 
@@ -235,6 +268,21 @@ export function buildWhyToday(
     bits.push("rough sleep — keeping it effortless");
   }
 
+  // Cycle symptoms mention
+  const symp = ctx.symptoms ?? [];
+  if (symp.includes("cramps") && r.warmth === "warm") {
+    bits.push("cramps today — warm and soothing");
+  }
+  if (symp.includes("fatigue") && r.effort === "nobrain") {
+    bits.push("feeling tired — minimal effort");
+  }
+  if (symp.includes("bloating") && r.carbDensity === "low") {
+    bits.push("bloating — lighter on carbs");
+  }
+  if (symp.includes("cravings") && r.style === "comfort") {
+    bits.push("cravings — satisfying comfort food");
+  }
+
   if (!bits.length) bits.push("a balanced fit for the rest of your day");
 
   // Cap to a tight sentence
@@ -254,13 +302,14 @@ function pickBestForMeal(
     (r) =>
       r.mealType === meal &&
       !excludeIds.has(r.id) &&
+      passesAllergies(r, profile) &&
       passesDiet(r, profile) &&
       passesHated(r, profile),
   );
   if (!candidates.length) {
-    // Fallback: relax exclusion only
+    // Fallback: relax hated/exclusion but NEVER relax allergies
     const relaxed = RECIPES.filter(
-      (r) => r.mealType === meal && passesDiet(r, profile) && passesHated(r, profile),
+      (r) => r.mealType === meal && passesAllergies(r, profile) && passesDiet(r, profile),
     );
     if (!relaxed.length) return null;
     return relaxed[0];
@@ -348,6 +397,7 @@ export function planWeek(profile: UserProfile, start = new Date()): WeekDayPlan[
       useUp: [],
       dateISO: d.toISOString().slice(0, 10),
       theme: "",
+      symptoms: [],
     };
     const used = new Set<string>();
     const candidates = (m: MealType) =>
@@ -355,6 +405,7 @@ export function planWeek(profile: UserProfile, start = new Date()): WeekDayPlan[
         (r) =>
           r.mealType === m &&
           !used.has(r.id) &&
+          passesAllergies(r, profile) &&
           passesDiet(r, profile) &&
           passesHated(r, profile),
       );
