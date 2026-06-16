@@ -113,15 +113,17 @@ function SettingsPage() {
             />
           </div>
         )}
-        <SelectField
-          label={t.onboarding.stats.activity}
-          value={profile.activityLevel}
-          options={Object.entries(t.onboarding.stats.activityOptions).map(([id, o]) => ({
-            id,
-            label: o.label,
-          }))}
-          onChange={(v) => update({ activityLevel: v as ActivityLevel })}
-        />
+        <div className="mt-3">
+          <SelectField
+            label={t.onboarding.stats.activity}
+            value={profile.activityLevel}
+            options={Object.entries(t.onboarding.stats.activityOptions).map(([id, o]) => ({
+              id,
+              label: o.label,
+            }))}
+            onChange={(v) => update({ activityLevel: v as ActivityLevel })}
+          />
+        </div>
         {targets.hasData && (
           <div className="mt-3 rounded-xl bg-sage-soft/60 px-3 py-2.5 flex items-start gap-2">
             <Sparkles className="size-3.5 text-sage shrink-0 mt-0.5" />
@@ -458,7 +460,7 @@ function SelectField({
   onChange: (v: string) => void;
 }) {
   return (
-    <div className="mt-3">
+    <div>
       <Label>{label}</Label>
       <select
         value={value}
