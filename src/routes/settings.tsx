@@ -66,53 +66,95 @@ function SettingsPage() {
 
       {/* Stats */}
       <Section title={t.settings.sectionStats} note={t.settings.statsNote}>
-        <div className="grid grid-cols-2 gap-2">
-          <NumberField
-            label={t.onboarding.stats.age}
-            value={profile.age}
-            min={0}
-            max={99}
-            onChange={(age) => update({ age })}
-            suffix="yrs"
-          />
-          <SelectField
-            label={t.onboarding.stats.sex}
-            value={profile.sex}
-            options={Object.entries(t.onboarding.stats.sexOptions).map(([id, label]) => ({
-              id,
-              label,
-            }))}
-            onChange={(v) => update({ sex: v as Sex })}
-          />
-          <NumberField
-            label={t.onboarding.stats.height}
-            value={profile.heightCm}
-            min={0}
-            max={230}
-            onChange={(heightCm) => update({ heightCm })}
-            suffix="cm"
-          />
-          <NumberField
-            label={t.onboarding.stats.weight}
-            value={profile.weightKg}
-            min={0}
-            max={250}
-            onChange={(weightKg) => update({ weightKg })}
-            suffix="kg"
-          />
+        {/* Row 1: Age + Sex */}
+        <div className="flex gap-2 mb-2">
+          <div className="flex-1">
+            <Label>{t.onboarding.stats.age}</Label>
+            <div className="mt-1 flex items-center gap-1 bg-cream border border-stone-warm rounded-xl px-3 py-2.5">
+              <input
+                type="number"
+                min={0}
+                max={99}
+                value={profile.age || ""}
+                placeholder="—"
+                onChange={(e) => update({ age: Number(e.target.value) || 0 })}
+                className="bg-transparent text-sm font-semibold outline-none w-full min-w-0 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+              />
+              <span className="text-xs text-ink/45">yrs</span>
+            </div>
+          </div>
+          <div className="flex-1">
+            <Label>{t.onboarding.stats.sex}</Label>
+            <div className="mt-1 flex items-center bg-cream border border-stone-warm rounded-xl px-3 py-2.5">
+              <select
+                value={profile.sex}
+                onChange={(e) => update({ sex: e.target.value as Sex })}
+                className="bg-transparent text-sm font-semibold outline-none w-full min-w-0 appearance-none"
+              >
+                {(Object.entries(t.onboarding.stats.sexOptions) as [Sex, string][]).map(
+                  ([id, label]) => (
+                    <option key={id} value={id}>{label}</option>
+                  ),
+                )}
+              </select>
+            </div>
+          </div>
         </div>
+        {/* Row 2: Height + Weight */}
+        <div className="flex gap-2 mb-2">
+          <div className="flex-1">
+            <Label>{t.onboarding.stats.height}</Label>
+            <div className="mt-1 flex items-center gap-1 bg-cream border border-stone-warm rounded-xl px-3 py-2.5">
+              <input
+                type="number"
+                min={0}
+                max={230}
+                value={profile.heightCm || ""}
+                placeholder="—"
+                onChange={(e) => update({ heightCm: Number(e.target.value) || 0 })}
+                className="bg-transparent text-sm font-semibold outline-none w-full min-w-0 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+              />
+              <span className="text-xs text-ink/45">cm</span>
+            </div>
+          </div>
+          <div className="flex-1">
+            <Label>{t.onboarding.stats.weight}</Label>
+            <div className="mt-1 flex items-center gap-1 bg-cream border border-stone-warm rounded-xl px-3 py-2.5">
+              <input
+                type="number"
+                min={0}
+                max={250}
+                value={profile.weightKg || ""}
+                placeholder="—"
+                onChange={(e) => update({ weightKg: Number(e.target.value) || 0 })}
+                className="bg-transparent text-sm font-semibold outline-none w-full min-w-0 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+              />
+              <span className="text-xs text-ink/45">kg</span>
+            </div>
+          </div>
+        </div>
+        {/* Row 3: Target Weight (conditional) */}
         {(profile.goal === "lose" || profile.goal === "muscle") && (
-          <div className="grid grid-cols-2 gap-2 mt-2">
-            <NumberField
-              label={t.onboarding.stats.target}
-              value={profile.targetWeightKg}
-              min={0}
-              max={250}
-              onChange={(targetWeightKg) => update({ targetWeightKg })}
-              suffix="kg"
-            />
+          <div className="flex gap-2 mb-2">
+            <div className="flex-1">
+              <Label>{t.onboarding.stats.target}</Label>
+              <div className="mt-1 flex items-center gap-1 bg-cream border border-stone-warm rounded-xl px-3 py-2.5">
+                <input
+                  type="number"
+                  min={0}
+                  max={250}
+                  value={profile.targetWeightKg || ""}
+                  placeholder="—"
+                  onChange={(e) => update({ targetWeightKg: Number(e.target.value) || 0 })}
+                  className="bg-transparent text-sm font-semibold outline-none w-full min-w-0 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+                />
+                <span className="text-xs text-ink/45">kg</span>
+              </div>
+            </div>
+            <div className="flex-1" />
           </div>
         )}
+        {/* Activity level */}
         <div className="mt-3">
           <SelectField
             label={t.onboarding.stats.activity}
