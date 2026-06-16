@@ -7,7 +7,7 @@ import { useProfile } from "@/lib/profile";
 import { useExternalRecipeCatalog } from "@/lib/external-recipes";
 import { t } from "@/lib/strings";
 import { phaseLabel } from "@/lib/cycle";
-import { photoUrl } from "@/lib/recipe-photos";
+import { recipePhotoUrl } from "@/lib/recipe-photos";
 import type { Recipe } from "@/lib/types";
 
 export const Route = createFileRoute("/week")({
@@ -166,7 +166,7 @@ function Chip({
 }
 
 function ExpandedMeal({ label, recipe }: { label: string; recipe: Recipe }) {
-  const photo = photoUrl(recipe.id, recipe.mealType, { w: 400, h: 225 });
+  const photo = recipePhotoUrl(recipe, { w: 400, h: 225 });
 
   return (
     <Link

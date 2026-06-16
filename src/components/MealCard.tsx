@@ -3,7 +3,7 @@ import { RefreshCw, Clock, Flame, Wallet, Sparkles, ThumbsUp, ThumbsDown, CheckC
 import { useEffect, useState } from "react";
 import type { Recipe } from "@/lib/types";
 import { t } from "@/lib/strings";
-import { photoUrl } from "@/lib/recipe-photos";
+import { recipePhotoUrl } from "@/lib/recipe-photos";
 
 const effortLabel = { nobrain: "No-brain", simple: "Simple", proper: "Properly" } as const;
 const budgetLabel = { low: "Low", medium: "Med", high: "High" } as const;
@@ -35,7 +35,7 @@ export function MealCard({ recipe, why, onSwap, canSwap, showCalories, badge, fe
     return () => cancelAnimationFrame(id);
   }, [recipe.id]);
 
-  const photo = photoUrl(recipe.id, recipe.mealType, { w: 800, h: 450 });
+  const photo = recipePhotoUrl(recipe, { w: 800, h: 450 });
   const label = badge
     ? `${mealLabel[recipe.mealType]} · ${badge}`
     : mealLabel[recipe.mealType];
