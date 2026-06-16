@@ -12,6 +12,7 @@ import { getWeather } from "./weather";
 import { getCyclePhase, phaseHint } from "./cycle";
 import { countSeasonalMatches } from "./seasonal";
 import { readFeedback } from "./profile";
+import { readCustomRecipes } from "./custom-recipes";
 
 export interface DayContextSnapshot {
   weather: Weather;
@@ -24,6 +25,10 @@ export function snapshotContext(profile: UserProfile, date = new Date()): DayCon
   const training = profile.training[date.getDay()] ?? "rest";
   const cycle = getCyclePhase(profile.cycle, date);
   return { weather, training, cycle };
+}
+
+function allRecipes(): Recipe[] {
+  return [...RECIPES, ...readCustomRecipes()];
 }
 
 // ─── Filters ────────────────────────────────────────────────────────────────
@@ -180,6 +185,9 @@ function scoreRecipe(
     score += entry.vote === "up" ? 3 : -6;
   }
 
+  // Personal weekly staples should recur more often without removing variety.
+  if ("weeklyStaple" in r && r.weeklyStaple) score += 7;
+
   // Cycle symptoms scoring
   const symp = ctx.symptoms ?? [];
   if (symp.includes("cramps")) {
@@ -298,7 +306,8 @@ function pickBestForMeal(
   snap: DayContextSnapshot,
   excludeIds: Set<string>,
 ): Recipe | null {
-  const candidates = RECIPES.filter(
+  const recipes = allRecipes();
+  const candidates = recipes.filter(
     (r) =>
       r.mealType === meal &&
       !excludeIds.has(r.id) &&
@@ -308,7 +317,7 @@ function pickBestForMeal(
   );
   if (!candidates.length) {
     // Fallback: relax hated/exclusion but NEVER relax allergies
-    const relaxed = RECIPES.filter(
+    const relaxed = recipes.filter(
       (r) => r.mealType === meal && passesAllergies(r, profile) && passesDiet(r, profile),
     );
     if (!relaxed.length) return null;
@@ -369,7 +378,7 @@ export function swapMeal(
 }
 
 export function recipeById(id: string): Recipe | undefined {
-  return RECIPES.find((r) => r.id === id);
+  return allRecipes().find((r) => r.id === id);
 }
 
 // ─── Week outline (simple V1) ───────────────────────────────────────────────
@@ -385,6 +394,7 @@ export interface WeekDayPlan {
 export function planWeek(profile: UserProfile, start = new Date()): WeekDayPlan[] {
   const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   const out: WeekDayPlan[] = [];
+  const recipes = allRecipes();
   // Deterministic-ish: use index to mix selection without randomness
   for (let i = 0; i < 7; i++) {
     const d = new Date(start);
@@ -401,7 +411,7 @@ export function planWeek(profile: UserProfile, start = new Date()): WeekDayPlan[
     };
     const used = new Set<string>();
     const candidates = (m: MealType) =>
-      RECIPES.filter(
+      recipes.filter(
         (r) =>
           r.mealType === m &&
           !used.has(r.id) &&
