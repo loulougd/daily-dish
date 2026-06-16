@@ -100,7 +100,9 @@ function SettingsPage() {
             onChange={(weightKg) => update({ weightKg })}
             suffix="kg"
           />
-          {(profile.goal === "lose" || profile.goal === "muscle") && (
+        </div>
+        {(profile.goal === "lose" || profile.goal === "muscle") && (
+          <div className="grid grid-cols-2 gap-2 mt-2">
             <NumberField
               label={t.onboarding.stats.target}
               value={profile.targetWeightKg}
@@ -109,8 +111,8 @@ function SettingsPage() {
               onChange={(targetWeightKg) => update({ targetWeightKg })}
               suffix="kg"
             />
-          )}
-        </div>
+          </div>
+        )}
         <SelectField
           label={t.onboarding.stats.activity}
           value={profile.activityLevel}
