@@ -32,6 +32,62 @@ function allRecipes(): Recipe[] {
   return [...RECIPES, ...readCustomRecipes(), ...readExternalRecipes()];
 }
 
+const CUISINE_ALIASES: Record<string, string[]> = {
+  italian: [
+    "italian",
+    "italy",
+    "pesto",
+    "penne",
+    "spaghetti",
+    "carbonara",
+    "risotto",
+    "parmesan",
+    "ricotta",
+    "gnocchi",
+    "lasagne",
+    "lasagna",
+    "mozzarella",
+  ],
+  asian: [
+    "asian",
+    "chinese",
+    "japanese",
+    "thai",
+    "korean",
+    "vietnamese",
+    "indonesian",
+    "malaysian",
+    "teriyaki",
+    "miso",
+    "tofu",
+    "edamame",
+    "soy sauce",
+    "sesame",
+    "rice noodles",
+    "pad thai",
+    "fried rice",
+    "noodle",
+    "noodles",
+  ],
+  mexican: ["mexican", "taco", "tacos", "burrito", "rancheros", "tortilla", "black beans", "lime", "cumin"],
+  french: ["french", "france", "croque", "ratatouille", "gruyere", "gruyère", "dijon"],
+  indian: ["indian", "india", "dhal", "dal", "tikka", "masala", "turmeric", "curry"],
+  middleeastern: ["middleeastern", "middle eastern", "shawarma", "hummus", "tahini", "falafel", "shakshuka"],
+  american: ["american", "mac and cheese", "mac & cheese", "pancakes", "bbq", "burger"],
+  mediterranean: ["mediterranean", "greek", "halloumi", "feta", "olive", "hummus", "tahini"],
+};
+
+const CUISINE_LABELS: Record<string, string> = {
+  italian: "Italian",
+  asian: "Asian",
+  mexican: "Mexican",
+  french: "French",
+  indian: "Indian",
+  middleeastern: "Middle Eastern",
+  american: "American",
+  mediterranean: "Mediterranean",
+};
+
 // ─── Filters ────────────────────────────────────────────────────────────────
 function passesDiet(r: Recipe, profile: UserProfile): boolean {
   const diet = profile.diet.map((d) => d.toLowerCase());
@@ -82,6 +138,38 @@ function passesAllergies(r: Recipe, profile: UserProfile): boolean {
     if (r.tags.some((t) => t.toLowerCase().includes(a))) return false;
   }
   return true;
+}
+
+function recipeMatchesTheme(r: Recipe, theme: string): boolean {
+  const key = theme.trim().toLowerCase();
+  if (!key) return true;
+  const aliases = CUISINE_ALIASES[key] ?? [key];
+  const text = [
+    r.name,
+    r.imagePrompt,
+    ...r.tags,
+    ...r.contains,
+    ...r.ingredients.map((i) => i.name),
+  ]
+    .join(" ")
+    .toLowerCase()
+    .replace(/[-_]/g, " ");
+  const compactText = text.replace(/\s+/g, "");
+
+  return aliases.some((alias) => {
+    const normalized = alias.toLowerCase().replace(/[-_]/g, " ").trim();
+    return text.includes(normalized) || compactText.includes(normalized.replace(/\s+/g, ""));
+  });
+}
+
+function preferThemeCandidates(candidates: Recipe[], theme: string): Recipe[] {
+  if (!theme.trim()) return candidates;
+  const themed = candidates.filter((r) => recipeMatchesTheme(r, theme));
+  return themed.length ? themed : candidates;
+}
+
+function themeLabel(theme: string): string {
+  return CUISINE_LABELS[theme] ?? theme;
 }
 
 // ─── Scoring ────────────────────────────────────────────────────────────────
@@ -159,9 +247,8 @@ function scoreRecipe(
   if (snap.cycle === "luteal" && r.carbDensity === "high") score += 1;
   if (snap.cycle === "follicular" && r.style === "clean") score += 1;
 
-  // Theme day cuisine bonus
-  if (ctx.theme && ctx.theme.length > 0) {
-    if (r.tags.includes(ctx.theme)) score += 10;
+  if (ctx.theme) {
+    score += recipeMatchesTheme(r, ctx.theme) ? 24 : -8;
   }
 
   // Seasonal ingredients bonus
@@ -258,9 +345,8 @@ export function buildWhyToday(
 
   if (snap.cycle) bits.push(`${snap.cycle} phase — ${phaseHint(snap.cycle)}`);
 
-  // Theme day mention
-  if (ctx.theme && r.tags.includes(ctx.theme)) {
-    bits.push(`fits your ${ctx.theme} theme day`);
+  if (ctx.theme && recipeMatchesTheme(r, ctx.theme)) {
+    bits.push(`fits your ${themeLabel(ctx.theme)} theme day`);
   }
 
   // Seasonal produce mention
@@ -308,7 +394,7 @@ function pickBestForMeal(
   excludeIds: Set<string>,
 ): Recipe | null {
   const recipes = allRecipes();
-  const candidates = recipes.filter(
+  const baseCandidates = recipes.filter(
     (r) =>
       r.mealType === meal &&
       !excludeIds.has(r.id) &&
@@ -316,18 +402,21 @@ function pickBestForMeal(
       passesDiet(r, profile) &&
       passesHated(r, profile),
   );
+  const candidates = preferThemeCandidates(baseCandidates, ctx.theme);
   if (!candidates.length) {
     // Fallback: relax hated/exclusion but NEVER relax allergies
-    const relaxed = recipes.filter(
+    const relaxedBase = recipes.filter(
       (r) => r.mealType === meal && passesAllergies(r, profile) && passesDiet(r, profile),
     );
+    const relaxed = preferThemeCandidates(relaxedBase, ctx.theme);
     if (!relaxed.length) return null;
     return relaxed[0];
   }
   const scored = candidates
     .map((r) => ({ r, s: scoreRecipe(r, profile, ctx, snap) }))
     .sort((a, b) => b.s - a.s);
-  // Add tiny randomness among top-3 for swap variety
+  // Add tiny randomness among top-3 for swap variety. When a cuisine theme is active,
+  // candidates have already been narrowed to that cuisine whenever possible.
   const top = scored.slice(0, Math.min(3, scored.length));
   return top[Math.floor(Math.random() * top.length)].r;
 }
