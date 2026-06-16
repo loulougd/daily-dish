@@ -1,7 +1,7 @@
 import { Share2, X } from "lucide-react";
 import { useRef, useState } from "react";
 import type { Recipe, Weather } from "@/lib/types";
-import { photoUrl } from "@/lib/recipe-photos";
+import { recipePhotoUrl } from "@/lib/recipe-photos";
 
 interface Props {
   recipe: Recipe;
@@ -45,7 +45,7 @@ function ShareModal({
 }: Props & { onClose: () => void }) {
   const cardRef = useRef<HTMLDivElement>(null);
 
-  const photo = photoUrl(recipe.id, recipe.mealType, { w: 800, h: 800 });
+  const photo = recipePhotoUrl(recipe, { w: 800, h: 800 });
   const dayName = new Date().toLocaleDateString("en-GB", { weekday: "long" });
 
   const handleShare = async () => {
