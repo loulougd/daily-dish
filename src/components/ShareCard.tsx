@@ -46,7 +46,7 @@ function ShareModal({
   const cardRef = useRef<HTMLDivElement>(null);
 
   const photo = photoUrl(recipe.id, recipe.mealType, { w: 800, h: 800 });
-  const dayName = new Date().toLocaleDateString(undefined, { weekday: "long" });
+  const dayName = new Date().toLocaleDateString("en-GB", { weekday: "long" });
 
   const handleShare = async () => {
     // Try native Web Share API (works on mobile)

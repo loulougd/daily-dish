@@ -357,7 +357,7 @@ function buildHeadline(
   ctx: { energy: EnergyLevel; timeToday: TimeBucket },
   city: string,
 ): { title: string; body: string } {
-  const dayName = new Date().toLocaleDateString(undefined, { weekday: "long" });
+  const dayName = new Date().toLocaleDateString("en-GB", { weekday: "long" });
   let title = `It’s a ${snap.weather.feel} ${dayName}.`;
   if (snap.training === "intense") title = `A big training ${dayName}.`;
   else if (ctx.energy === "low") title = `Taking it easy this ${dayName}.`;
