@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { recipeById, snapshotContext, buildWhyToday, swapMeal } from "@/lib/meal-planner";
 import { useDailyContext, useProfile, useSwaps } from "@/lib/profile";
 import { t } from "@/lib/strings";
-import { photoUrl } from "@/lib/recipe-photos";
+import { recipePhotoUrl } from "@/lib/recipe-photos";
 import { portionScale, calorieScaleForMeal } from "@/lib/nutrition";
 
 export const Route = createFileRoute("/recipe/$id")({
@@ -74,7 +74,7 @@ function RecipePage() {
       {/* Hero */}
       <div className="relative">
         <img
-          src={photoUrl(recipe.id, recipe.mealType, { w: 1000, h: 800 })}
+          src={recipePhotoUrl(recipe, { w: 1000, h: 800 })}
           alt={recipe.imagePrompt || recipe.name}
           className="aspect-[5/4] w-full object-cover bg-stone-warm/40"
         />
@@ -187,7 +187,7 @@ function RecipePage() {
   );
 }
 
-function Stat({ label, value }: { label: string; value: string | number }) {
+function Stat({ label, value }: { label: string | number; value: string | number }) {
   return (
     <div className="bg-card border border-stone-warm rounded-2xl p-3 text-center">
       <div className="font-serif text-xl">{value}</div>
