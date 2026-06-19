@@ -1,12 +1,12 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Calendar, Camera, Home, Settings as SettingsIcon, ShoppingBasket } from "lucide-react";
+import { Calendar, BookOpen, Home, Settings as SettingsIcon, ShoppingBasket } from "lucide-react";
 import type { ReactNode } from "react";
 import { t } from "@/lib/strings";
 
 const NAV = [
   { to: "/today", label: t.nav.today, Icon: Home },
   { to: "/week", label: t.nav.week, Icon: Calendar },
-  { to: "/snap", label: t.nav.snap, Icon: Camera },
+  { to: "/my-recipes", label: "Recipes", Icon: BookOpen },
   { to: "/grocery", label: t.nav.grocery, Icon: ShoppingBasket },
   { to: "/settings", label: t.nav.settings, Icon: SettingsIcon },
 ] as const;

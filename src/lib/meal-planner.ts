@@ -11,7 +11,12 @@ import { RECIPES } from "./recipes-data";
 import { getWeather } from "./weather";
 import { getCyclePhase, phaseHint } from "./cycle";
 import { countSeasonalMatches } from "./seasonal";
-import { readFeedback } from "./profile";
+import { readFeedback, readCustomRecipes, readFavorites } from "./profile";
+
+/** All available recipes: built-in + user-created custom recipes */
+function getAllRecipes(): Recipe[] {
+  return [...RECIPES, ...readCustomRecipes()];
+}
 
 export interface DayContextSnapshot {
   weather: Weather;
@@ -180,6 +185,13 @@ function scoreRecipe(
     score += entry.vote === "up" ? 3 : -6;
   }
 
+  // Favorites / weekly staples bonus
+  const favs = readFavorites();
+  const favEntry = favs.find((f) => f.recipeId === r.id);
+  if (favEntry) {
+    score += favEntry.staple ? 8 : 4; // staples get higher priority
+  }
+
   // Cycle symptoms scoring
   const symp = ctx.symptoms ?? [];
   if (symp.includes("cramps")) {
@@ -298,7 +310,8 @@ function pickBestForMeal(
   snap: DayContextSnapshot,
   excludeIds: Set<string>,
 ): Recipe | null {
-  const candidates = RECIPES.filter(
+  const all = getAllRecipes();
+  const candidates = all.filter(
     (r) =>
       r.mealType === meal &&
       !excludeIds.has(r.id) &&
@@ -308,7 +321,7 @@ function pickBestForMeal(
   );
   if (!candidates.length) {
     // Fallback: relax hated/exclusion but NEVER relax allergies
-    const relaxed = RECIPES.filter(
+    const relaxed = all.filter(
       (r) => r.mealType === meal && passesAllergies(r, profile) && passesDiet(r, profile),
     );
     if (!relaxed.length) return null;
@@ -369,7 +382,7 @@ export function swapMeal(
 }
 
 export function recipeById(id: string): Recipe | undefined {
-  return RECIPES.find((r) => r.id === id);
+  return getAllRecipes().find((r) => r.id === id);
 }
 
 // ─── Week outline (simple V1) ───────────────────────────────────────────────
@@ -400,8 +413,9 @@ export function planWeek(profile: UserProfile, start = new Date()): WeekDayPlan[
       symptoms: [],
     };
     const used = new Set<string>();
+    const all = getAllRecipes();
     const candidates = (m: MealType) =>
-      RECIPES.filter(
+      all.filter(
         (r) =>
           r.mealType === m &&
           !used.has(r.id) &&

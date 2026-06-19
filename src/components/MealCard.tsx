@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { RefreshCw, Clock, Flame, Wallet, Sparkles, ThumbsUp, ThumbsDown, CheckCircle } from "lucide-react";
+import { RefreshCw, Clock, Flame, Wallet, Sparkles, ThumbsUp, ThumbsDown, CheckCircle, Heart } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { Recipe } from "@/lib/types";
 import { t } from "@/lib/strings";
@@ -24,9 +24,11 @@ interface Props {
   onFeedback?: (vote: "up" | "down") => void;
   onCooked?: () => void;
   shareSlot?: React.ReactNode;
+  isFav?: boolean;
+  onToggleFav?: () => void;
 }
 
-export function MealCard({ recipe, why, onSwap, canSwap, showCalories, badge, feedbackVote, onFeedback, onCooked, shareSlot }: Props) {
+export function MealCard({ recipe, why, onSwap, canSwap, showCalories, badge, feedbackVote, onFeedback, onCooked, shareSlot, isFav, onToggleFav }: Props) {
   // Fade-out/in animation when the recipe changes via swap
   const [fading, setFading] = useState(false);
   useEffect(() => {
@@ -120,7 +122,7 @@ export function MealCard({ recipe, why, onSwap, canSwap, showCalories, badge, fe
           </div>
         )}
 
-        <div className="grid grid-cols-[1fr_auto_auto_auto] gap-2 mt-3">
+        <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-2 mt-3">
           <Link
             to="/recipe/$id"
             params={{ id: recipe.id }}
@@ -128,6 +130,20 @@ export function MealCard({ recipe, why, onSwap, canSwap, showCalories, badge, fe
           >
             {t.today.viewRecipe}
           </Link>
+          {onToggleFav && (
+            <button
+              type="button"
+              onClick={onToggleFav}
+              className={`size-10 rounded-xl border inline-flex items-center justify-center active:scale-[0.95] transition-all ${
+                isFav
+                  ? "bg-red-50 border-red-200 text-red-500"
+                  : "bg-card border-stone-warm text-ink/40"
+              }`}
+              aria-label="Favorite"
+            >
+              <Heart className="size-4" strokeWidth={2} fill={isFav ? "currentColor" : "none"} />
+            </button>
+          )}
           {onCooked && (
             <button
               type="button"

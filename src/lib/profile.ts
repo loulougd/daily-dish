@@ -16,13 +16,15 @@
  * implementation is contained.
  */
 import { useEffect, useState, useCallback } from "react";
-import type { DailyContext, MealFeedback, UserProfile } from "./types";
+import type { DailyContext, MealFeedback, Recipe, UserProfile } from "./types";
 
 const PROFILE_KEY = "forkcast.profile.v1";
 const CONTEXT_KEY = "forkcast.context.v1";
 const SWAPS_KEY = "forkcast.swaps.v1";
 const FEEDBACK_KEY = "forkcast.feedback.v1";
 const HYDRATION_KEY = "forkcast.hydration.v1";
+const CUSTOM_RECIPES_KEY = "forkcast.custom-recipes.v1";
+const FAVORITES_KEY = "forkcast.favorites.v1";
 
 export const defaultProfile: UserProfile = {
   goal: "better",
@@ -293,4 +295,99 @@ export function useCookingStats() {
   }, []);
 
   return { stats, markCooked };
+}
+
+// ─── Custom Recipes ─────────────────────────────────────────────────────────
+export function useCustomRecipes() {
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
+
+  useEffect(() => {
+    setRecipes(readJSON<Recipe[]>(CUSTOM_RECIPES_KEY, []));
+  }, []);
+
+  const add = useCallback((recipe: Recipe) => {
+    setRecipes((prev) => {
+      const next = [...prev, recipe];
+      writeJSON(CUSTOM_RECIPES_KEY, next);
+      return next;
+    });
+  }, []);
+
+  const remove = useCallback((id: string) => {
+    setRecipes((prev) => {
+      const next = prev.filter((r) => r.id !== id);
+      writeJSON(CUSTOM_RECIPES_KEY, next);
+      return next;
+    });
+  }, []);
+
+  const update = useCallback((id: string, patch: Partial<Recipe>) => {
+    setRecipes((prev) => {
+      const next = prev.map((r) => (r.id === id ? { ...r, ...patch } : r));
+      writeJSON(CUSTOM_RECIPES_KEY, next);
+      return next;
+    });
+  }, []);
+
+  return { recipes, add, remove, update };
+}
+
+/** Read custom recipes (for scoring engine). */
+export function readCustomRecipes(): Recipe[] {
+  return readJSON<Recipe[]>(CUSTOM_RECIPES_KEY, []);
+}
+
+// ─── Favorites / Weekly Staples ─────────────────────────────────────────────
+export interface FavoriteEntry {
+  recipeId: string;
+  staple: boolean; // true = weekly staple (higher bonus)
+}
+
+export function useFavorites() {
+  const [favs, setFavs] = useState<FavoriteEntry[]>([]);
+
+  useEffect(() => {
+    setFavs(readJSON<FavoriteEntry[]>(FAVORITES_KEY, []));
+  }, []);
+
+  const toggle = useCallback((recipeId: string) => {
+    setFavs((prev) => {
+      const exists = prev.find((f) => f.recipeId === recipeId);
+      let next: FavoriteEntry[];
+      if (exists) {
+        next = prev.filter((f) => f.recipeId !== recipeId);
+      } else {
+        next = [...prev, { recipeId, staple: false }];
+      }
+      writeJSON(FAVORITES_KEY, next);
+      return next;
+    });
+  }, []);
+
+  const toggleStaple = useCallback((recipeId: string) => {
+    setFavs((prev) => {
+      const next = prev.map((f) =>
+        f.recipeId === recipeId ? { ...f, staple: !f.staple } : f,
+      );
+      writeJSON(FAVORITES_KEY, next);
+      return next;
+    });
+  }, []);
+
+  const isFav = useCallback(
+    (recipeId: string) => favs.some((f) => f.recipeId === recipeId),
+    [favs],
+  );
+
+  const isStaple = useCallback(
+    (recipeId: string) => favs.some((f) => f.recipeId === recipeId && f.staple),
+    [favs],
+  );
+
+  return { favorites: favs, toggle, toggleStaple, isFav, isStaple };
+}
+
+/** Read favorites (for scoring engine). */
+export function readFavorites(): FavoriteEntry[] {
+  return readJSON<FavoriteEntry[]>(FAVORITES_KEY, []);
 }

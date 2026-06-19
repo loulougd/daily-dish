@@ -15,6 +15,7 @@ import { Route as SnapRouteImport } from './routes/snap'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as PremiumRouteImport } from './routes/premium'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as MyRecipesRouteImport } from './routes/my-recipes'
 import { Route as GroceryRouteImport } from './routes/grocery'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as RecipeIdRouteImport } from './routes/recipe.$id'
@@ -49,6 +50,11 @@ const OnboardingRoute = OnboardingRouteImport.update({
   path: '/onboarding',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MyRecipesRoute = MyRecipesRouteImport.update({
+  id: '/my-recipes',
+  path: '/my-recipes',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const GroceryRoute = GroceryRouteImport.update({
   id: '/grocery',
   path: '/grocery',
@@ -68,6 +74,7 @@ const RecipeIdRoute = RecipeIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/grocery': typeof GroceryRoute
+  '/my-recipes': typeof MyRecipesRoute
   '/onboarding': typeof OnboardingRoute
   '/premium': typeof PremiumRoute
   '/settings': typeof SettingsRoute
@@ -79,6 +86,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/grocery': typeof GroceryRoute
+  '/my-recipes': typeof MyRecipesRoute
   '/onboarding': typeof OnboardingRoute
   '/premium': typeof PremiumRoute
   '/settings': typeof SettingsRoute
@@ -91,6 +99,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/grocery': typeof GroceryRoute
+  '/my-recipes': typeof MyRecipesRoute
   '/onboarding': typeof OnboardingRoute
   '/premium': typeof PremiumRoute
   '/settings': typeof SettingsRoute
@@ -104,6 +113,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/grocery'
+    | '/my-recipes'
     | '/onboarding'
     | '/premium'
     | '/settings'
@@ -115,6 +125,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/grocery'
+    | '/my-recipes'
     | '/onboarding'
     | '/premium'
     | '/settings'
@@ -126,6 +137,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/grocery'
+    | '/my-recipes'
     | '/onboarding'
     | '/premium'
     | '/settings'
@@ -138,6 +150,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   GroceryRoute: typeof GroceryRoute
+  MyRecipesRoute: typeof MyRecipesRoute
   OnboardingRoute: typeof OnboardingRoute
   PremiumRoute: typeof PremiumRoute
   SettingsRoute: typeof SettingsRoute
@@ -191,6 +204,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OnboardingRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/my-recipes': {
+      id: '/my-recipes'
+      path: '/my-recipes'
+      fullPath: '/my-recipes'
+      preLoaderRoute: typeof MyRecipesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/grocery': {
       id: '/grocery'
       path: '/grocery'
@@ -218,6 +238,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   GroceryRoute: GroceryRoute,
+  MyRecipesRoute: MyRecipesRoute,
   OnboardingRoute: OnboardingRoute,
   PremiumRoute: PremiumRoute,
   SettingsRoute: SettingsRoute,

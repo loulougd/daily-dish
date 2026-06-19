@@ -1,6 +1,6 @@
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { useDailyContext, useProfile, useSwaps, useMealFeedback, useHydration, useCookingStats } from "@/lib/profile";
+import { useDailyContext, useProfile, useSwaps, useMealFeedback, useHydration, useCookingStats, useFavorites } from "@/lib/profile";
 import { planDay, swapMeal, snapshotContext } from "@/lib/meal-planner";
 import { fetchWeather } from "@/lib/weather";
 import { t } from "@/lib/strings";
@@ -47,6 +47,7 @@ function TodayPage() {
   const { feedback, vote: voteFeedback, getVote } = useMealFeedback();
   const hydration = useHydration();
   const { stats: cookingStats, markCooked } = useCookingStats();
+  const { toggle: toggleFav, isFav } = useFavorites();
   const [plan, setPlan] = useState<DayPlan | null>(null);
   const [useUpDraft, setUseUpDraft] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
@@ -293,6 +294,8 @@ function TodayPage() {
           onFeedback={(v) => voteFeedback(plan.breakfast.id, v)}
           onCooked={() => markCooked(plan.breakfast.id)}
           shareSlot={<ShareButton recipe={plan.breakfast} weather={snap.weather} city={profile.city} why={plan.whys.breakfast} />}
+          isFav={isFav(plan.breakfast.id)}
+          onToggleFav={() => toggleFav(plan.breakfast.id)}
         />
         <MealCard
           recipe={plan.lunch}
@@ -304,6 +307,8 @@ function TodayPage() {
           onFeedback={(v) => voteFeedback(plan.lunch.id, v)}
           onCooked={() => markCooked(plan.lunch.id)}
           shareSlot={<ShareButton recipe={plan.lunch} weather={snap.weather} city={profile.city} why={plan.whys.lunch} />}
+          isFav={isFav(plan.lunch.id)}
+          onToggleFav={() => toggleFav(plan.lunch.id)}
         />
         {showSnack && (
           <SnackCard
@@ -326,6 +331,8 @@ function TodayPage() {
           onFeedback={(v) => voteFeedback(plan.dinner.id, v)}
           onCooked={() => markCooked(plan.dinner.id)}
           shareSlot={<ShareButton recipe={plan.dinner} weather={snap.weather} city={profile.city} why={plan.whys.dinner} />}
+          isFav={isFav(plan.dinner.id)}
+          onToggleFav={() => toggleFav(plan.dinner.id)}
         />
       </section>
 
